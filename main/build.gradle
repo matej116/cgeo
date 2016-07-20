@@ -49,6 +49,8 @@ android {
 
         // include only those language resources from libraries which we actively maintain ourself in the translation project
         resConfigs "en","ca","cs","da","de","es","fi","fr","hu","it","ja","lt","lv","nb","nl","pl","pt","ro","ru","sk","sl","sv"
+
+        multiDexEnabled true
     }
 
     // signing is handled via private.properties
@@ -311,6 +313,7 @@ dependencies {
     def androidAnnotationsVersion = '4.1.0'
     apt "org.androidannotations:androidannotations:$androidAnnotationsVersion"
     compile "org.androidannotations:androidannotations-api:$androidAnnotationsVersion"
+    compile 'com.intellij:annotations:+@jar'
 
 /*
  * ButterKnife view injection, https://github.com/JakeWharton/butterknife
@@ -339,6 +342,9 @@ dependencies {
     nightlyCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"
     rcCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"
     testCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"
+
+
+    compile 'com.android.support:multidex:+'
 }
 
 /*

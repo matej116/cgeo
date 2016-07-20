@@ -11,6 +11,7 @@ import cgeo.geocaching.utils.OOMDumpingUncaughtExceptionHandler;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Application;
+import cgeo.geocaching.compatibility.Compatibility;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -24,7 +25,7 @@ import java.lang.reflect.Method;
 
 import com.squareup.leakcanary.LeakCanary;
 
-public class CgeoApplication extends Application {
+public class CgeoApplication extends MultiDexApplication {
 
     private static CgeoApplication instance;
 
@@ -55,11 +56,6 @@ public class CgeoApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            fixUserManagerMemoryLeak();
-        }
-
         LeakCanary.install(this);
         showOverflowMenu();
 
@@ -74,23 +70,6 @@ public class CgeoApplication extends Application {
 
         // Attempt to acquire an initial location before any real activity happens.
         sensors.geoDataObservable(true).subscribeOn(AndroidRxUtils.looperCallbacksScheduler).first().subscribe();
-    }
-
-    /**
-     * https://code.google.com/p/android/issues/detail?id=173789
-     */
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
-    private void fixUserManagerMemoryLeak() {
-        try {
-            // invoke UserManager.get() via reflection
-            final Method m = UserManager.class.getMethod("get", Context.class);
-            m.setAccessible(true);
-            m.invoke(null, this);
-        } catch (final Throwable e) {
-            if (BuildConfig.DEBUG) {
-                throw new IllegalStateException("Cannot fix UserManager memory leak", e);
-            }
-        }
     }
 
     private void showOverflowMenu() {
