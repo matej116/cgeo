@@ -71,4 +71,5 @@ public abstract class AbstractMap {
 
     public abstract void onSaveInstanceState(final Bundle outState);
 
+    public abstract void onLowMemory();
 }

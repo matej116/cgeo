@@ -12,8 +12,6 @@ import android.graphics.drawable.Drawable;
  */
 public interface ItemizedOverlayImpl extends OverlayImpl {
 
-    AbstractItemizedOverlay getBase();
-
     void superPopulate();
 
     void superSetLastFocusedItemIndex(int i);

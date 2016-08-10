@@ -3,19 +3,23 @@ package cgeo.geocaching.maps.mapsforge;
 import cgeo.geocaching.R;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Viewport;
-import cgeo.geocaching.maps.CachesOverlay;
-import cgeo.geocaching.maps.PositionAndScaleOverlay;
+import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
 import cgeo.geocaching.maps.interfaces.GeneralOverlay;
 import cgeo.geocaching.maps.interfaces.GeoPointImpl;
 import cgeo.geocaching.maps.interfaces.MapControllerImpl;
 import cgeo.geocaching.maps.interfaces.MapProjectionImpl;
+import cgeo.geocaching.maps.interfaces.MapReadyCallback;
 import cgeo.geocaching.maps.interfaces.MapSource;
 import cgeo.geocaching.maps.interfaces.MapViewImpl;
+import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
 import cgeo.geocaching.maps.interfaces.OnMapDragListener;
+import cgeo.geocaching.maps.interfaces.PositionAndHistory;
 import cgeo.geocaching.settings.Settings;
 import cgeo.geocaching.utils.Log;
 
 import org.apache.commons.lang3.StringUtils;
+
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import org.mapsforge.v3.android.maps.MapView;
 import org.mapsforge.v3.android.maps.Projection;
@@ -27,7 +31,6 @@ import org.mapsforge.v3.core.GeoPoint;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
@@ -36,10 +39,16 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Collection;
+import java.util.Iterator;
+
 public class MapsforgeMapView extends MapView implements MapViewImpl {
     private GestureDetector gestureDetector;
     private OnMapDragListener onDragListener;
     private final MapsforgeMapController mapController = new MapsforgeMapController(getController(), getMapGenerator().getZoomLevelMax());
+
+    private MapsforgeCachesList cachesList;
+    private MapsforgeCacheOverlay cacheOverlay;
 
     public MapsforgeMapView(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -54,6 +63,9 @@ public class MapsforgeMapView extends MapView implements MapViewImpl {
         if (Settings.isScaleMapsforgeText()) {
             this.setTextScale(getResources().getDisplayMetrics().density);
         }
+        cacheOverlay = new MapsforgeCacheOverlay(null);
+        cachesList = cacheOverlay.getBase();
+        getOverlays().add(cacheOverlay);
     }
 
     @Override
@@ -95,7 +107,14 @@ public class MapsforgeMapView extends MapView implements MapViewImpl {
 
     @Override
     public void clearOverlays() {
-        getOverlays().clear();
+        // remove all overlays except cacheOverlay
+        Iterator<Overlay> it = getOverlays().iterator();
+        while (it.hasNext()) {
+            Overlay ovl = it.next();
+            if (ovl != cacheOverlay) {
+                it.remove();
+            }
+        }
     }
 
     @Override
@@ -103,19 +122,12 @@ public class MapsforgeMapView extends MapView implements MapViewImpl {
         return new MapsforgeMapProjection(getProjection());
     }
 
-    @Override
-    public CachesOverlay createAddMapOverlay(final Context context, final Drawable drawable) {
-
-        final MapsforgeCacheOverlay ovl = new MapsforgeCacheOverlay(context, drawable);
-        getOverlays().add(ovl);
-        return ovl.getBase();
-    }
 
     @Override
-    public PositionAndScaleOverlay createAddPositionAndScaleOverlay(final Geopoint coords, final String geocode) {
-        final MapsforgeOverlay ovl = new MapsforgeOverlay(this, coords, geocode);
+    public PositionAndHistory createAddPositionAndScaleOverlay(final Geopoint coords) {
+        final MapsforgeOverlay ovl = new MapsforgeOverlay(this, coords);
         getOverlays().add(ovl);
-        return (PositionAndScaleOverlay) ovl.getBase();
+        return (MapsforgePositionAndHistory) ovl.getBase();
     }
 
     @Override
@@ -157,11 +169,6 @@ public class MapsforgeMapView extends MapView implements MapViewImpl {
         return span;
     }
 
-    @Override
-    public void preLoad() {
-        // Nothing to do here
-    }
-
     /**
      * Get the map zoom level which is compatible with Google Maps.
      *
@@ -171,7 +178,7 @@ public class MapsforgeMapView extends MapView implements MapViewImpl {
     public int getMapZoomLevel() {
         // Google Maps and OSM Maps use different zoom levels for the same view.
         // All OSM Maps zoom levels are offset by 1 so they match Google Maps.
-        return getMapPosition().getZoomLevel() + 1;
+        return getMapPosition().getZoomLevel() - 1;
     }
 
     /**
@@ -300,4 +307,36 @@ public class MapsforgeMapView extends MapView implements MapViewImpl {
     public boolean needsInvertedColors() {
         return false;
     }
+
+    @Override
+    public void onMapReady(MapReadyCallback callback) {
+        callback.mapReady(); // direct call callback, no need to wait for anything
+    }
+
+    @Override
+    public void updateItems(Collection<CachesOverlayItemImpl> itemsPre) {
+        cachesList.updateItems(itemsPre);
+    }
+
+    @Override
+    public boolean getCircles() {
+        return cachesList.getCircles();
+    }
+
+    @Override
+    public void switchCircles() {
+        cachesList.switchCircles();
+    }
+
+    @Override
+    public void setOnTapListener(OnCacheTapListener listener) {
+        cachesList.setOnTapListener(listener);
+    }
+
+    @Override public void onCreate(Bundle b) {}
+    @Override public void onResume() {}
+    @Override public void onPause() {}
+    @Override public void onDestroy() {}
+    @Override public void onSaveInstanceState(Bundle b) {}
+    @Override public void onLowMemory() {}
 }

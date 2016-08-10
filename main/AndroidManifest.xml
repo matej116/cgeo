@@ -46,9 +46,6 @@
         android:hardwareAccelerated="false"
         android:supportsRtl="true"
         android:largeHeap="true">
-        <uses-library
-            android:name="com.google.android.maps"
-            android:required="false" />
 
         <!-- Samsung Multi-Window support -->
         <uses-library
@@ -73,6 +70,9 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/maps_api_key" />
 
         <activity
             android:name=".MainActivity"
@@ -312,7 +312,7 @@
             android:label="@string/map_map" >
         </activity>
         <activity
-            android:name=".maps.google.v1.GoogleMapActivity"
+            android:name=".maps.google.v2.GoogleMapActivity"
             android:label="@string/map_map" >
         </activity>
         <activity

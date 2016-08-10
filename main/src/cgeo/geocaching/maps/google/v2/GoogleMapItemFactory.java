@@ -1,4 +1,6 @@
-package cgeo.geocaching.maps.google.v1;
+package cgeo.geocaching.maps.google.v2;
+
+import android.graphics.drawable.Drawable;
 
 import cgeo.geocaching.models.IWaypoint;
 import cgeo.geocaching.location.Geopoint;
@@ -8,6 +10,8 @@ import cgeo.geocaching.maps.interfaces.MapItemFactory;
 
 public class GoogleMapItemFactory implements MapItemFactory {
 
+    private final BitmapDescriptorCache bitmapDescriptorCache = new BitmapDescriptorCache();
+
     @Override
     public GeoPointImpl getGeoPointBase(final Geopoint coords) {
         return new GoogleGeoPoint(coords.getLatitudeE6(), coords.getLongitudeE6());
@@ -15,6 +19,8 @@ public class GoogleMapItemFactory implements MapItemFactory {
 
     @Override
     public CachesOverlayItemImpl getCachesOverlayItem(final IWaypoint coordinate, final boolean applyDistanceRule) {
-        return new GoogleCacheOverlayItem(coordinate, applyDistanceRule);
+        GoogleCacheOverlayItem item = new GoogleCacheOverlayItem(coordinate, applyDistanceRule);
+        item.setBitmapDescriptorCache(bitmapDescriptorCache);
+        return item;
     }
 }

@@ -17,6 +17,7 @@ import android.content.res.Resources;
 import android.os.Build;
 import android.os.UserManager;
 import android.support.annotation.NonNull;
+import android.support.multidex.MultiDexApplication;
 import android.view.ViewConfiguration;
 
 import java.lang.reflect.Field;

@@ -1,4 +1,4 @@
-package cgeo.geocaching.maps.google.v1;
+package cgeo.geocaching.maps.google.v2;
 
 import cgeo.geocaching.activity.ActivityMixin;
 import cgeo.geocaching.activity.FilteredActivity;
@@ -6,7 +6,6 @@ import cgeo.geocaching.maps.AbstractMap;
 import cgeo.geocaching.maps.CGeoMap;
 import cgeo.geocaching.maps.interfaces.MapActivityImpl;
 
-import com.google.android.maps.MapActivity;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -14,7 +13,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-public class GoogleMapActivity extends MapActivity implements MapActivityImpl, FilteredActivity {
+public class GoogleMapActivity extends Activity implements MapActivityImpl, FilteredActivity {
 
     private final AbstractMap mapBase;
 
@@ -22,10 +21,6 @@ public class GoogleMapActivity extends MapActivity implements MapActivityImpl, F
         mapBase = new CGeoMap(this);
     }
 
-    @Override
-    protected boolean isRouteDisplayed() {
-        return false;
-    }
 
     @Override
     public Activity getActivity() {
@@ -40,6 +35,11 @@ public class GoogleMapActivity extends MapActivity implements MapActivityImpl, F
     @Override
     protected void onSaveInstanceState(final Bundle outState) {
         mapBase.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onLowMemory() {
+        mapBase.onLowMemory();
     }
 
     @Override
