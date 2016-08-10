@@ -259,6 +259,9 @@ dependencies {
     def playServicesVersion = '9.2.1'
     compile "com.google.android.gms:play-services-location:$playServicesVersion"
     compile "com.google.android.gms:play-services-appinvite:$playServicesVersion"
+    compile "com.google.android.gms:play-services-maps:$playServicesVersion"
+
+    compile 'com.google.maps.android:android-maps-utils:0.4+'
 
     // somehow there is a transitive play service dependency which we don't want
     configurations.all*.exclude module: "play-services-measurement"

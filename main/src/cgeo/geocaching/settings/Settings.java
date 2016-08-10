@@ -14,7 +14,7 @@ import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.maps.CGeoMap.MapMode;
 import cgeo.geocaching.maps.LivemapStrategy;
 import cgeo.geocaching.maps.MapProviderFactory;
-import cgeo.geocaching.maps.google.v1.GoogleMapProvider;
+import cgeo.geocaching.maps.google.v2.GoogleMapProvider;
 import cgeo.geocaching.maps.interfaces.GeoPointImpl;
 import cgeo.geocaching.maps.interfaces.MapProvider;
 import cgeo.geocaching.maps.interfaces.MapSource;
@@ -756,6 +756,7 @@ public class Settings {
     }
 
     public static void setMapCenter(final GeoPointImpl mapViewCenter) {
+        if (mapViewCenter == null) return;
         putInt(R.string.pref_lastmaplat, mapViewCenter.getLatitudeE6());
         putInt(R.string.pref_lastmaplon, mapViewCenter.getLongitudeE6());
     }

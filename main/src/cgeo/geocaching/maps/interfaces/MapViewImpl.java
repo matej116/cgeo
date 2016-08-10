@@ -1,14 +1,12 @@
 package cgeo.geocaching.maps.interfaces;
 
+import android.content.Context;
+import android.os.Bundle;
+
+import java.util.Collection;
+
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Viewport;
-import cgeo.geocaching.maps.CachesOverlay;
-import cgeo.geocaching.maps.PositionAndScaleOverlay;
-
-import android.support.annotation.NonNull;
-
-import android.content.Context;
-import android.graphics.drawable.Drawable;
 
 /**
  * Defines common functions of the provider-specific
@@ -20,15 +18,12 @@ public interface MapViewImpl {
 
     void displayZoomControls(boolean b);
 
-    void preLoad();
-
     void clearOverlays();
 
     MapControllerImpl getMapController();
 
     void destroyDrawingCache();
 
-    @NonNull
     GeoPointImpl getMapViewCenter();
 
     int getLatitudeSpan();
@@ -45,9 +40,7 @@ public interface MapViewImpl {
 
     Context getContext();
 
-    CachesOverlay createAddMapOverlay(Context context, Drawable drawable);
-
-    PositionAndScaleOverlay createAddPositionAndScaleOverlay(final Geopoint coords, final String geocode);
+    PositionAndHistory createAddPositionAndScaleOverlay(final Geopoint coords);
 
     void setMapSource();
 
@@ -82,4 +75,27 @@ public interface MapViewImpl {
     boolean hasMapThemes();
 
     void setMapTheme();
+
+    void onMapReady(MapReadyCallback callback);
+
+    void updateItems(final Collection<CachesOverlayItemImpl> itemsPre);
+
+    boolean getCircles();
+
+    void switchCircles();
+
+    void setOnTapListener(OnCacheTapListener listener);
+
+
+    /* From Google MapView documentation:
+     * Users of this class must forward all the life cycle methods from the Activity or Fragment
+     * containing this view to the corresponding ones in this class. In particular, you must
+     * forward on the following methods:
+     */
+    void onCreate(Bundle b);
+    void onResume();
+    void onPause();
+    void onDestroy();
+    void onSaveInstanceState(Bundle b);
+    void onLowMemory();
 }

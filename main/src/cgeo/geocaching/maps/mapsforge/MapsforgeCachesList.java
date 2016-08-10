@@ -1,32 +1,5 @@
-package cgeo.geocaching.maps;
+package cgeo.geocaching.maps.mapsforge;
 
-import cgeo.geocaching.CachePopup;
-import cgeo.geocaching.R;
-import cgeo.geocaching.WaypointPopup;
-import cgeo.geocaching.activity.Progress;
-import cgeo.geocaching.connector.gc.GCMap;
-import cgeo.geocaching.enumerations.CacheType;
-import cgeo.geocaching.enumerations.CoordinatesType;
-import cgeo.geocaching.enumerations.LoadFlags;
-import cgeo.geocaching.location.Geopoint;
-import cgeo.geocaching.location.IConversion;
-import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
-import cgeo.geocaching.maps.interfaces.GeoPointImpl;
-import cgeo.geocaching.maps.interfaces.ItemizedOverlayImpl;
-import cgeo.geocaching.maps.interfaces.MapItemFactory;
-import cgeo.geocaching.maps.interfaces.MapProjectionImpl;
-import cgeo.geocaching.maps.interfaces.MapProvider;
-import cgeo.geocaching.maps.interfaces.MapViewImpl;
-import cgeo.geocaching.models.Geocache;
-import cgeo.geocaching.models.IWaypoint;
-import cgeo.geocaching.settings.Settings;
-import cgeo.geocaching.storage.DataStore;
-import cgeo.geocaching.utils.Log;
-
-import org.apache.commons.lang3.StringUtils;
-import android.support.annotation.NonNull;
-
-import android.content.Context;
 import android.content.res.Resources.NotFoundException;
 import android.graphics.Canvas;
 import android.graphics.DashPathEffect;
@@ -37,39 +10,43 @@ import android.graphics.Point;
 import android.location.Location;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 
-public class CachesOverlay extends AbstractItemizedOverlay {
+import cgeo.geocaching.location.Geopoint;
+import cgeo.geocaching.location.IConversion;
+import cgeo.geocaching.maps.AbstractItemizedOverlay;
+import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
+import cgeo.geocaching.maps.interfaces.GeoPointImpl;
+import cgeo.geocaching.maps.interfaces.ItemizedOverlayImpl;
+import cgeo.geocaching.maps.interfaces.MapItemFactory;
+import cgeo.geocaching.maps.interfaces.MapProjectionImpl;
+import cgeo.geocaching.maps.interfaces.MapProvider;
+import cgeo.geocaching.maps.interfaces.MapViewImpl;
+import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
+import cgeo.geocaching.settings.Settings;
+import cgeo.geocaching.utils.Log;
+
+public class MapsforgeCachesList extends AbstractItemizedOverlay {
 
     private List<CachesOverlayItemImpl> items = new ArrayList<>();
-    private Context context = null;
     private boolean displayCircles = false;
-    private final Progress progress = new Progress();
     private Paint blockedCircle = null;
     private PaintFlagsDrawFilter setFilter = null;
     private PaintFlagsDrawFilter removeFilter = null;
     private MapItemFactory mapItemFactory = null;
+    private OnCacheTapListener onCacheTapListener;
 
-    public CachesOverlay(final ItemizedOverlayImpl ovlImpl, final Context contextIn) {
+    public MapsforgeCachesList(final ItemizedOverlayImpl ovlImpl) {
         super(ovlImpl);
 
         populate();
-
-        context = contextIn;
 
         final MapProvider mapProvider = Settings.getMapProvider();
         mapItemFactory = mapProvider.getMapItemFactory();
     }
 
-    void updateItems(final CachesOverlayItemImpl item) {
-        final List<CachesOverlayItemImpl> itemsPre = new ArrayList<>();
-        itemsPre.add(item);
-
-        updateItems(itemsPre);
-    }
-
-    void updateItems(final List<CachesOverlayItemImpl> itemsPre) {
+    public void updateItems(final Collection<CachesOverlayItemImpl> itemsPre) {
         if (itemsPre == null) {
             return;
         }
@@ -90,12 +67,16 @@ public class CachesOverlay extends AbstractItemizedOverlay {
         }
     }
 
-    boolean getCircles() {
+    public boolean getCircles() {
         return displayCircles;
     }
 
-    void switchCircles() {
+    public void switchCircles() {
         displayCircles = !displayCircles;
+    }
+
+    public void setOnTapListener(OnCacheTapListener listener) {
+        this.onCacheTapListener = listener;
     }
 
     @Override
@@ -204,12 +185,12 @@ public class CachesOverlay extends AbstractItemizedOverlay {
     @Override
     public boolean onTap(final int index) {
 
+        if (onCacheTapListener == null) return false;
+
         try {
             if (items.size() <= index) {
                 return false;
             }
-
-            progress.show(context, context.getResources().getString(R.string.map_live), context.getResources().getString(R.string.cache_dialog_loading_details), true, null);
 
             // prevent concurrent changes
             getOverlayImpl().lock();
@@ -226,36 +207,10 @@ public class CachesOverlay extends AbstractItemizedOverlay {
                 return false;
             }
 
-            final IWaypoint coordinate = item.getCoord();
-            final CoordinatesType coordType = coordinate.getCoordType();
+            onCacheTapListener.onCacheTap(item.getCoord());
 
-            if (coordType == CoordinatesType.CACHE && StringUtils.isNotBlank(coordinate.getGeocode())) {
-                final Geocache cache = DataStore.loadCache(coordinate.getGeocode(), LoadFlags.LOAD_CACHE_OR_DB);
-                if (cache != null) {
-                    final RequestDetailsThread requestDetailsThread = new RequestDetailsThread(cache);
-                    if (!requestDetailsThread.requestRequired()) {
-                        // don't show popup if we have enough details
-                        progress.dismiss();
-                    }
-                    requestDetailsThread.start();
-                    return true;
-                }
-                progress.dismiss();
-                return false;
-            }
-
-            if (coordType == CoordinatesType.WAYPOINT && coordinate.getId() >= 0) {
-                CGeoMap.markCacheAsDirty(coordinate.getGeocode());
-                WaypointPopup.startActivity(context, coordinate.getId(), coordinate.getGeocode());
-            } else {
-                progress.dismiss();
-                return false;
-            }
-
-            progress.dismiss();
         } catch (final NotFoundException e) {
-            Log.e("CachesOverlay.onTap", e);
-            progress.dismiss();
+            Log.e("MapsforgeCachesList.onTap", e);
         }
 
         return true;
@@ -266,7 +221,7 @@ public class CachesOverlay extends AbstractItemizedOverlay {
         try {
             return items.get(index);
         } catch (final Exception e) {
-            Log.e("CachesOverlay.createItem", e);
+            Log.e("MapsforgeCachesList.createItem", e);
         }
 
         return null;
@@ -277,27 +232,5 @@ public class CachesOverlay extends AbstractItemizedOverlay {
         return items.size();
     }
 
-    private class RequestDetailsThread extends Thread {
-
-        @NonNull private final Geocache cache;
-
-        RequestDetailsThread(@NonNull final Geocache cache) {
-            this.cache = cache;
-        }
-
-        public boolean requestRequired() {
-            return cache.getType() == CacheType.UNKNOWN || cache.getDifficulty() == 0;
-        }
-
-        @Override
-        public void run() {
-            if (requestRequired()) {
-                /* final SearchResult search = */GCMap.searchByGeocodes(Collections.singleton(cache.getGeocode()));
-            }
-            CGeoMap.markCacheAsDirty(cache.getGeocode());
-            CachePopup.startActivity(context, cache.getGeocode());
-            progress.dismiss();
-        }
-    }
 
 }
