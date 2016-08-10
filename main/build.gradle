@@ -340,7 +340,7 @@ dependencies {
 
     // memory leak detection
     def leakCanaryVersion = '1.4-beta2'
-    debugCompile "com.squareup.leakcanary:leakcanary-android:$leakCanaryVersion"
+    debugCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion" // foo don't care about leaks during debug
     releaseCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"
     nightlyCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"
     rcCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"

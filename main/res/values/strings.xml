@@ -660,6 +660,7 @@
     <!-- map sources -->
     <string name="map_source_google_map">Google: Map</string>
     <string name="map_source_google_satellite">Google: Satellite</string>
+    <string name="map_source_google_mapy_cz">Google: Mapy.cz</string>
     <string name="map_source_osm_mapnik">OSM: Mapnik</string>
     <string name="map_source_osm_cyclemap">OSM: Cyclemap</string>
     <string name="map_source_osm_offline">Offline</string>
@@ -1540,5 +1541,8 @@
     <string name="cache_list_remove_from">Remove from list</string>
     <string name="list_list_headline">Lists:</string>
     <string name="cache_store_list">Store in list</string>
+    <string name="map_source_google_mapy_cz_bing">Mapy.cz: letecká</string>
+    <string name="map_source_google_mapy_cz_tourist">Mapy.cz - turistická</string>
+    <string name="map_source_google_mapy_cz_custom">Mapy.cz: Další…</string>
 
 </resources>

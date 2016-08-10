@@ -23,6 +23,7 @@ import cgeo.geocaching.location.Units;
 import cgeo.geocaching.maps.PositionHistory;
 import cgeo.geocaching.maps.interfaces.PositionAndHistory;
 import cgeo.geocaching.settings.Settings;
+import cgeo.geocaching.utils.Log;
 
 
 public class GooglePositionAndHistory implements PositionAndHistory {
@@ -50,6 +51,7 @@ public class GooglePositionAndHistory implements PositionAndHistory {
     public GooglePositionAndHistory(GoogleMap googleMap, Geopoint coords) {
         this.intentCoords = coords == null ? null : new LatLng(coords.getLatitude(), coords.getLongitude());
         positionObjs = new GoogleMapObjects(googleMap);
+        Log.i("positionObjs: " + positionObjs.hashCode());
         historyObjs = new GoogleMapObjects(googleMap);
     }
 
@@ -110,6 +112,7 @@ public class GooglePositionAndHistory implements PositionAndHistory {
     }
 
     private synchronized void drawPosition() {
+        Log.i("drawing position");
         positionObjs.removeAll();
         if (this.coordinates == null) return;
 

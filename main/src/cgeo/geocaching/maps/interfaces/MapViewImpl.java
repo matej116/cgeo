@@ -1,12 +1,16 @@
 package cgeo.geocaching.maps.interfaces;
 
-import android.content.Context;
-import android.os.Bundle;
-
-import java.util.Collection;
-
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Viewport;
+
+import android.os.Bundle;
+import android.os.Parcelable;
+import android.support.annotation.NonNull;
+
+import android.content.Context;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Defines common functions of the provider-specific

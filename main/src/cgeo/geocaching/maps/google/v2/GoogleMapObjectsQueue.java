@@ -116,7 +116,6 @@ public class GoogleMapObjectsQueue {
                     if (requestedToAdd.contains(options)) {
                         // if yes, it is not anymore
                         requestedToAdd.remove(options);
-                    } else {
                     }
                 }
                 if (System.currentTimeMillis() - time >= TIME_MAX) {
