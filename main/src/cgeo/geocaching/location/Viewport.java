@@ -73,10 +73,10 @@ public final class Viewport {
     public boolean contains(@NonNull final ICoordinates point) {
         final Geopoint coords = point.getCoords();
         return coords != null
-                && coords.getLongitudeE6() >= bottomLeft.getLongitudeE6()
-                && coords.getLongitudeE6() <= topRight.getLongitudeE6()
-                && coords.getLatitudeE6() >= bottomLeft.getLatitudeE6()
-                && coords.getLatitudeE6() <= topRight.getLatitudeE6();
+                && coords.getLongitude() >= bottomLeft.getLongitude()
+                && coords.getLongitude() <= topRight.getLongitude()
+                && coords.getLatitude() >= bottomLeft.getLatitude()
+                && coords.getLatitude() <= topRight.getLatitude();
     }
 
     /**

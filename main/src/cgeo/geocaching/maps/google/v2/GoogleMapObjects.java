@@ -30,6 +30,7 @@ public class GoogleMapObjects {
 
     protected void addOptions(final Object options) {
         synchronized (objects) {
+            Log.i("Adding options: " + this.hashCode() + " " + options.hashCode());
             MapObjectOptions opts = MapObjectOptions.from(options);
             objects.add(opts);
             queue.requestAdd(opts);

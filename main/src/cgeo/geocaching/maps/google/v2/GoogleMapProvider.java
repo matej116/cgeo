@@ -15,6 +15,7 @@ public final class GoogleMapProvider extends AbstractMapProvider {
 
     public static final String GOOGLE_MAP_ID = "GOOGLE_MAP";
     public static final String GOOGLE_SATELLITE_ID = "GOOGLE_SATELLITE";
+    public static final String MAPYCZ_ID = "MAPY.CZ";
 
     private final MapItemFactory mapItemFactory;
 
@@ -23,6 +24,11 @@ public final class GoogleMapProvider extends AbstractMapProvider {
 
         registerMapSource(new GoogleMapSource(this, resources.getString(R.string.map_source_google_map)));
         registerMapSource(new GoogleSatelliteSource(this, resources.getString(R.string.map_source_google_satellite)));
+
+        registerMapSource(new MapyCzSource(this, resources.getString(R.string.map_source_google_mapy_cz)));
+        registerMapSource(new MapyCzSource(this, resources.getString(R.string.map_source_google_mapy_cz_bing), "bing"));
+        registerMapSource(new MapyCzSource(this, resources.getString(R.string.map_source_google_mapy_cz_tourist), "wturist-m"));
+        registerMapSource(new MapyCzSource(this, resources.getString(R.string.map_source_google_mapy_cz_custom), null));
 
         mapItemFactory = new GoogleMapItemFactory();
     }
@@ -86,6 +92,34 @@ public final class GoogleMapProvider extends AbstractMapProvider {
             super(GOOGLE_SATELLITE_ID, mapProvider, name);
         }
 
+    }
+
+    public static final class MapyCzSource extends AbstractGoogleMapSource {
+
+        private final String type;
+
+
+        MapyCzSource(final MapProvider mapProvider, final String name, String type) {
+            super(MAPYCZ_ID + "_" + type, mapProvider, name);
+            this.type = type;
+        }
+
+        MapyCzSource(final MapProvider mapProvider, final String name) {
+            this(mapProvider, name, "base-m");
+        }
+
+        @Override
+        public boolean isAvailable() {
+            return true;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public MapyCzSource derive(String type) {
+            return new MapyCzSource(this.getMapProvider(), this.getName(), type);
+        }
     }
 
 }

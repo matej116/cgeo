@@ -1486,4 +1486,7 @@
   <string name="cache_list_remove_from">Odebrat ze seznamu</string>
   <string name="list_list_headline">Seznamy:</string>
   <string name="cache_store_list">Uložit do seznamu</string>
+  <string name="map_source_google_mapy_cz_bing">Mapy.cz: letecká</string>
+  <string name="map_source_google_mapy_cz_tourist">Mapy.cz - turistická</string>
+  <string name="map_source_google_mapy_cz_custom">Mapy.cz: Další...</string>
 </resources>
