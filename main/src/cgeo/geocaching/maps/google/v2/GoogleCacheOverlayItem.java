@@ -1,12 +1,11 @@
 package cgeo.geocaching.maps.google.v2;
 
-import android.graphics.drawable.Drawable;
-
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import cgeo.geocaching.maps.CacheMarker;
 import cgeo.geocaching.models.Geocache;
 import cgeo.geocaching.models.IWaypoint;
 import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
@@ -16,7 +15,7 @@ public class GoogleCacheOverlayItem implements CachesOverlayItemImpl, MapObjectO
     private final IWaypoint coord;
     private final boolean applyDistanceRule;
     private BitmapDescriptorCache bitmapDescriptorCache;
-    private Drawable marker;
+    private CacheMarker marker;
 
     public GoogleCacheOverlayItem(final IWaypoint coordinate, final boolean applyDistanceRule) {
         this.coord = coordinate;
@@ -39,12 +38,12 @@ public class GoogleCacheOverlayItem implements CachesOverlayItemImpl, MapObjectO
     }
 
     @Override
-    public Drawable getMarker(int index) {
+    public CacheMarker getMarker(int index) {
         return marker;
     }
 
     @Override
-    public void setMarker(Drawable markerIn) {
+    public void setMarker(CacheMarker markerIn) {
         this.marker = markerIn;
     }
 
@@ -79,11 +78,11 @@ public class GoogleCacheOverlayItem implements CachesOverlayItemImpl, MapObjectO
         }
     }
 
-    private BitmapDescriptor toBitmapDescriptor(Drawable d) {
+    private BitmapDescriptor toBitmapDescriptor(CacheMarker d) {
         if (bitmapDescriptorCache != null) {
-            return bitmapDescriptorCache.fromDrawable(d);
+            return bitmapDescriptorCache.fromCacheMarker(d);
         } else {
-            return BitmapDescriptorCache.toBitmapDescriptor(d);
+            return BitmapDescriptorCache.toBitmapDescriptor(d.getDrawable());
         }
     }
 }

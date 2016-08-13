@@ -687,7 +687,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
         // do not clear cached items - BitmapDescriptoCache needs same Drawables, not new ones created
         // after cache is cleared, or TODO implement ComparableDrawable?
-        //MapUtils.clearCachedItems();
+        MapUtils.clearCachedItems();
 
         super.onPause();
         mapView.onPause();
@@ -697,8 +697,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     public void onStop() {
         // Ensure that handlers will not try to update the dialog once the view is detached.
         waitDialog = null;
-
-        MapUtils.clearCachedItems();
         super.onStop();
     }
 
