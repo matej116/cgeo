@@ -1854,7 +1854,17 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     public void onCacheTap(IWaypoint waypoint) {
         Context context = mapView.getContext();
 
-        progress.show(context, context.getResources().getString(R.string.map_live), context.getResources().getString(R.string.cache_dialog_loading_details), true, null);
+        final RequestDetailsThread requestDetailsThread = new RequestDetailsThread();
+
+        progress.show(context, context.getResources().getString(R.string.map_live), context.getResources().getString(R.string.cache_dialog_loading_details), true,
+                Message.obtain(new Handler(new Handler.Callback() {
+                    @Override
+                    public boolean handleMessage(Message msg) {
+                        progress.dismiss();
+                        requestDetailsThread.setStopped(true);
+                        return true;
+                    }
+                })));
 
         if (waypoint == null) {
             return;
@@ -1865,7 +1875,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         if (coordType == CoordinatesType.CACHE && StringUtils.isNotBlank(waypoint.getGeocode())) {
             final Geocache cache = DataStore.loadCache(waypoint.getGeocode(), LoadFlags.LOAD_CACHE_OR_DB);
             if (cache != null) {
-                final RequestDetailsThread requestDetailsThread = new RequestDetailsThread(cache);
+                requestDetailsThread.setCache(cache);
                 if (!requestDetailsThread.requestRequired()) {
                     // don't show popup if we have enough details
                     progress.dismiss();
@@ -1890,11 +1900,9 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
     private class RequestDetailsThread extends Thread {
 
-        @NonNull private final Geocache cache;
+        private Geocache cache;
 
-        RequestDetailsThread(@NonNull final Geocache cache) {
-            this.cache = cache;
-        }
+        private boolean stopped = false;
 
         public boolean requestRequired() {
             return cache.getType() == CacheType.UNKNOWN || cache.getDifficulty() == 0;
@@ -1904,11 +1912,26 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         public void run() {
             if (requestRequired()) {
                     /* final SearchResult search = */
+                // will throw IllegalState caused by InterruptedException, FIXME, create field stopped and check instead of interrupted?
                 GCMap.searchByGeocodes(Collections.singleton(cache.getGeocode()));
             }
-            CGeoMap.markCacheAsDirty(cache.getGeocode());
-            CachePopup.startActivity(mapView.getContext(), cache.getGeocode());
-            progress.dismiss();
+            if (!stopped && cache != null) {
+                CGeoMap.markCacheAsDirty(cache.getGeocode());
+                CachePopup.startActivity(mapView.getContext(), cache.getGeocode());
+                progress.dismiss();
+            }
+        }
+
+        public void setStopped(boolean stopped)
+        {
+            this.stopped = stopped;
+        }
+
+        public void setCache(@NonNull Geocache cache) {
+            if (this.cache != null) {
+                throw new IllegalStateException();
+            }
+            this.cache = cache;
         }
     }
 
