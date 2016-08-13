@@ -51,7 +51,6 @@ public class GoogleMapObjects {
 
     public void removeAll() {
         synchronized (objects) {
-            Log.i("Removing objects: " + this.hashCode() + " " + objects.size());
             queue.requestRemove(objects);
             objects.clear();
         }
