@@ -2,6 +2,8 @@ package cgeo.geocaching;
 
 import cgeo.geocaching.activity.AbstractActivity;
 import cgeo.geocaching.activity.ActivityMixin;
+import cgeo.geocaching.connector.gc.GCMap;
+import cgeo.geocaching.enumerations.CacheType;
 import cgeo.geocaching.enumerations.LoadFlags;
 import cgeo.geocaching.gcvote.GCVote;
 import cgeo.geocaching.gcvote.GCVoteRating;
@@ -37,6 +39,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import java.util.Collections;
 
 import butterknife.ButterKnife;
 import rx.Subscription;
@@ -223,8 +227,29 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
         });
     }
 
-    protected final void addCacheDetails() {
-        assert cache != null;
+    private void acquireDetails() {
+        AppObservable.bindActivity(getActivity(), RxUtils.deferredNullable(new Func0<Geocache>() {
+            @Override
+            public Geocache call() {
+                return GCMap.searchByGeocodes(Collections.singleton(cache.getGeocode())).getFirstCacheFromResult(LoadFlags.LOAD_CACHE_ONLY);
+            }
+        })).subscribeOn(AndroidRxUtils.networkScheduler).subscribe(new Action1<Geocache>() {
+            @Override
+            public void call(Geocache searchResult) {
+                cache = searchResult;
+                resetDetails();
+            }
+        });
+    }
+
+    private void resetDetails()
+    {
+        details.removeAll();
+        fillDetails();
+    }
+
+    protected void fillDetails()
+    {
         // cache type
         final String cacheType = cache.getType().getL10n();
         final String cacheSize = cache.showSize() ? " (" + cache.getSize().getL10n() + ")" : "";
@@ -240,15 +265,24 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
         details.addTerrain(cache);
         details.addEventDate(cache);
 
-        // rating
-        if (cache.getRating() > 0) {
-            details.addRating(cache);
-        } else {
-            acquireGCVote();
-        }
+        details.addRating(cache);
 
         // favorite count
         details.add(R.string.cache_favorite, cache.getFavoritePoints() + "×");
+    }
+
+    protected void initCacheDetails() {
+        assert cache != null;
+
+        fillDetails();
+
+        if (cache.getRating() < 0) {
+            acquireGCVote();
+        }
+
+        if (cache.getType() == CacheType.UNKNOWN || cache.getDifficulty() == 0) {
+            acquireDetails();
+        }
 
         // more details
         final View view = getView();

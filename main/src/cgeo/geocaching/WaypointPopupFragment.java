@@ -35,6 +35,8 @@ public class WaypointPopupFragment extends AbstractDialogFragment {
     private Waypoint waypoint = null;
     private TextView waypointDistance = null;
 
+    private CacheDetailsCreator waypointDetails;
+
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
         final View v = inflater.inflate(R.layout.waypoint_popup, container, false);
@@ -74,24 +76,8 @@ public class WaypointPopupFragment extends AbstractDialogFragment {
         }
 
         try {
-            if (StringUtils.isNotBlank(waypoint.getName())) {
-                setTitle(waypoint.getName());
-            } else {
-                setTitle(waypoint.getGeocode());
-            }
 
-
-            actionBarTitle.setCompoundDrawablesWithIntrinsicBounds(Compatibility.getDrawable(getResources(), waypoint.getWaypointType().markerId), null, null, null);
-
-            //getSupportActionBar().setIcon(getResources().getDrawable(waypoint.getWaypointType().markerId));
-
-            details = new CacheDetailsCreator(getActivity(), waypointDetailsLayout);
-
-            //Waypoint geocode
-            details.add(R.string.cache_geocode, waypoint.getPrefix() + waypoint.getGeocode().substring(2));
-            details.addDistance(waypoint, waypointDistance);
-            waypointDistance = details.getValueView();
-            details.add(R.string.waypoint_note, waypoint.getNote());
+            waypointDetails = new CacheDetailsCreator(getActivity(), waypointDetailsLayout);
 
             buttonEdit.setOnClickListener(new OnClickListener() {
 
@@ -103,13 +89,33 @@ public class WaypointPopupFragment extends AbstractDialogFragment {
             });
 
             details = new CacheDetailsCreator(getActivity(), cacheDetailsLayout);
-            details.add(R.string.cache_name, cache.getName());
 
-            addCacheDetails();
+            initCacheDetails();
 
         } catch (final Exception e) {
             Log.e("WaypointPopup.init", e);
         }
+    }
+
+    @Override
+    protected void fillDetails() {
+
+        if (StringUtils.isNotBlank(waypoint.getName())) {
+            setTitle(waypoint.getName());
+        } else {
+            setTitle(waypoint.getGeocode());
+        }
+
+        actionBarTitle.setCompoundDrawablesWithIntrinsicBounds(Compatibility.getDrawable(getResources(), waypoint.getWaypointType().markerId), null, null, null);
+
+        //Waypoint geocode
+        waypointDetails.add(R.string.cache_geocode, waypoint.getPrefix() + waypoint.getGeocode().substring(2));
+        waypointDetails.addDistance(waypoint, waypointDistance);
+        waypointDistance = waypointDetails.getValueView();
+        waypointDetails.add(R.string.waypoint_note, waypoint.getNote());
+
+        details.add(R.string.cache_name, cache.getName());
+        super.fillDetails();
     }
 
     @Override

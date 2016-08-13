@@ -113,19 +113,10 @@ public class CachePopupFragment extends AbstractDialogFragment {
         super.init();
 
         try {
-            if (StringUtils.isNotBlank(cache.getName())) {
-                setTitle(cache.getName());
-            } else {
-                setTitle(geocode);
-            }
-
-            final TextView titleView = ButterKnife.findById(getView(), R.id.actionbar_title);
-            titleView.setCompoundDrawablesWithIntrinsicBounds(Compatibility.getDrawable(getResources(), cache.getType().markerId), null, null, null);
-
             final LinearLayout layout = ButterKnife.findById(getView(), R.id.details_list);
             details = new CacheDetailsCreator(getActivity(), layout);
 
-            addCacheDetails();
+            initCacheDetails();
 
             // offline use
             CacheDetailActivity.updateOfflineBox(getView(), cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
@@ -137,6 +128,19 @@ public class CachePopupFragment extends AbstractDialogFragment {
 
         // cache is loaded. remove progress-popup if any there
         progress.dismiss();
+    }
+
+    @Override
+    protected void fillDetails() {
+        if (StringUtils.isNotBlank(cache.getName())) {
+            setTitle(cache.getName());
+        } else {
+            setTitle(geocode);
+        }
+
+        final TextView titleView = ButterKnife.findById(getView(), R.id.actionbar_title);
+        titleView.setCompoundDrawablesWithIntrinsicBounds(Compatibility.getDrawable(getResources(), cache.getType().markerId), null, null, null);
+        super.fillDetails();
     }
 
     @Override
