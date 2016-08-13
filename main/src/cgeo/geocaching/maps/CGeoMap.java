@@ -1913,8 +1913,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         @Override
         public void run() {
             if (requestRequired()) {
-                    /* final SearchResult search = */
-                // will throw IllegalState caused by InterruptedException, FIXME, create field stopped and check instead of interrupted?
                 GCMap.searchByGeocodes(Collections.singleton(cache.getGeocode()));
             }
             if (!stopped && cache != null) {
