@@ -4,6 +4,7 @@ package cgeo.geocaching.maps.google.v2;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
+import android.util.SparseArray;
 
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -11,22 +12,22 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import cgeo.geocaching.maps.CacheMarker;
 import cgeo.geocaching.utils.Log;
 
 public class BitmapDescriptorCache {
 
     /**
-     * cache must be WeakMap - cached Drawables are cleared and recreated after every MapView.onPause()
+     * rely on unique hashcode of CacheMarker
      */
-    protected final Map<Drawable, BitmapDescriptor> cache = new WeakHashMap<>();
+    protected final SparseArray<BitmapDescriptor> cache = new SparseArray<>();
 
-    public BitmapDescriptor fromDrawable(Drawable d)
+    public BitmapDescriptor fromCacheMarker(CacheMarker d)
     {
-        BitmapDescriptor bd = cache.get(d);
+        BitmapDescriptor bd = cache.get(d.hashCode());
         if (bd == null) {
-            bd = toBitmapDescriptor(d);
-            cache.put(d, bd);
-        } else {
+            bd = toBitmapDescriptor(d.getDrawable());
+            cache.put(d.hashCode(), bd);
         }
         return bd;
     }

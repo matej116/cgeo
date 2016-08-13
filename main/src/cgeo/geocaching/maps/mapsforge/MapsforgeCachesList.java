@@ -52,7 +52,7 @@ public class MapsforgeCachesList extends AbstractItemizedOverlay {
         }
 
         for (final CachesOverlayItemImpl item : itemsPre) {
-            item.setMarker(boundCenterBottom(item.getMarker(0)));
+            boundCenterBottom(item.getMarker(0).getDrawable());
         }
 
         // ensure no interference between the draw and content changing routines
