@@ -43,6 +43,11 @@ public final class CacheDetailsCreator {
         this.activity = activity;
         this.res = activity.getResources();
         this.parentView = parentView;
+        removeAll();
+    }
+
+    public void removeAll()
+    {
         parentView.removeAllViews();
     }
 
