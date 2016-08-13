@@ -14,15 +14,23 @@ import com.google.android.gms.maps.model.UrlTileProvider;
 
 
 import java.io.ByteArrayOutputStream;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 import cgeo.geocaching.utils.ImageUtils;
 import cgeo.geocaching.utils.Log;
+import cgeo.geocaching.utils.RxUtils;
+import okhttp3.Call;
+import rx.Observable;
+import rx.functions.Func4;
 
 public class DensityTileProvider implements TileProvider {
 
 
     private TileProvider provider;
-    private int factor;
+    private final int factor;
+
+    ThreadGroup threads;
 
     public DensityTileProvider(TileProvider provider, int factor) {
 
@@ -34,50 +42,73 @@ public class DensityTileProvider implements TileProvider {
         this(provider, factorOfDisplay(metrics)); // factorOfDisplay());
     }
 
-    protected Tile mergeTiles(int x, int y, int zoom, int factor)
-    {
-        if (factor <= 1) {
-            return provider.getTile(x, y, zoom);
-        }
-        Tile lt = provider.getTile(x * 2    , y * 2    , zoom + 1);
-        if (lt == NO_TILE) {
-            // fallback to lower resolution
-            return provider.getTile(x, y, zoom);
-        }
-        Tile rt = provider.getTile(x * 2 + 1, y * 2    , zoom + 1);
-        Tile lb = provider.getTile(x * 2    , y * 2 + 1, zoom + 1);
-        Tile rb = provider.getTile(x * 2 + 1, y * 2 + 1, zoom + 1);
 
-//        if (lt.width != lb.width || lt.width != rt.width || lt.width != rb.width) {
-//            Log.w("Tiles cannot be merged, not same width");
-//            return provider.getTile(x, y, zoom);
-//        }
-//        if (lt.height != lb.height|| lt.height!= rt.height|| lt.height != rb.height) {
-//            Log.w("Tiles cannot be merged, not same height");
-//            return provider.getTile(x, y, zoom);
-//        }
 
-        int w = lt.width + rt.width;
-        int h = lt.height + lb.height;
-
-        Bitmap wrap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-
-        android.graphics.Canvas c = new Canvas(wrap);
-        c.drawBitmap(BitmapFactory.decodeByteArray(lt.data, 0, lt.data.length), 0, 0, null);
-        c.drawBitmap(BitmapFactory.decodeByteArray(rt.data, 0, rt.data.length), lt.width, 0, null);
-        c.drawBitmap(BitmapFactory.decodeByteArray(lb.data, 0, lb.data.length), 0, lt.height, null);
-        c.drawBitmap(BitmapFactory.decodeByteArray(rb.data, 0, rb.data.length), lb.width, rt.height, null);
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        wrap.compress(Bitmap.CompressFormat.PNG,0, baos);
-
-        return new Tile(w, h, baos.toByteArray());
+    protected Observable<Tile> getTileFromProviderAsync(final int x, final int y, final int zoom) {
+        return Observable.fromCallable(new Callable<Tile>() {
+            @Override
+            public Tile call() throws Exception {
+                return provider.getTile(x, y, zoom);
+            }
+        });
     }
 
 
-    protected static int factorOfDisplay(DisplayMetrics metrics)
-    {
+
+    protected Observable<Tile> mergeTiles(final int x, final int y, final int zoom, int factor) {
+        if (factor <= 1) {
+            return getTileFromProviderAsync(x, y, zoom);
+        }
+        Observable<Tile> lt = getTileFromProviderAsync(x * 2, y * 2, zoom + 1);
+        Observable<Tile> rt = getTileFromProviderAsync(x * 2 + 1, y * 2, zoom + 1);
+        Observable<Tile> lb = getTileFromProviderAsync(x * 2, y * 2 + 1, zoom + 1);
+        Observable<Tile> rb = getTileFromProviderAsync(x * 2 + 1, y * 2 + 1, zoom + 1);
+
+
+        return Observable.zip(lt, rt, lb, rb, new Func4<Tile, Tile, Tile, Tile, Tile>() {
+            @Override
+            public Tile call(Tile lt, Tile rt, Tile lb, Tile rb) {
+                if (lt == null || rt == null || lb == null || rb == null) {
+                    // one of the tiles is not available, return null to signalize whole tile is not available
+                    return null;
+                }
+                if (lt == NO_TILE || rt == NO_TILE || lb == NO_TILE || rb == NO_TILE) {
+                    // return lower resolution as callback
+                    return provider.getTile(x, y, zoom);
+                }
+
+
+//                if (lt.width != lb.width || lt.width != rt.width || lt.width != rb.width) {
+//                    Log.w("Tiles cannot be merged, not same width");
+//                    return provider.getTile(x, y, zoom);
+//                }
+//                if (lt.height != lb.height|| lt.height!= rt.height|| lt.height != rb.height) {
+//                    Log.w("Tiles cannot be merged, not same height");
+//                    return provider.getTile(x, y, zoom);
+//                }
+
+                int w = lt.width + rt.width;
+                int h = lt.height + lb.height;
+
+                Bitmap wrap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+
+                Canvas c = new Canvas(wrap);
+                c.drawBitmap(BitmapFactory.decodeByteArray(lt.data, 0, lt.data.length), 0, 0, null);
+                c.drawBitmap(BitmapFactory.decodeByteArray(rt.data, 0, rt.data.length), lt.width, 0, null);
+                c.drawBitmap(BitmapFactory.decodeByteArray(lb.data, 0, lb.data.length), 0, lt.height, null);
+                c.drawBitmap(BitmapFactory.decodeByteArray(rb.data, 0, rb.data.length), lb.width, rt.height, null);
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+                wrap.compress(Bitmap.CompressFormat.PNG, 0, baos);
+
+                return new Tile(w, h, baos.toByteArray());
+            }
+        });
+    }
+
+
+    protected static int factorOfDisplay(DisplayMetrics metrics) {
         float density = metrics.density;
         // compute ceil(log base 2 of density)
         return 1 + (int) Math.ceil(Math.log(Math.ceil(density)) / Math.log(2));
@@ -90,7 +121,7 @@ public class DensityTileProvider implements TileProvider {
 
     @Override
     public Tile getTile(int x, int y, int zoom) {
-        return mergeTiles(x, y, zoom, factor);
+        return mergeTiles(x, y, zoom, factor).toBlocking().first();
     }
 
 
