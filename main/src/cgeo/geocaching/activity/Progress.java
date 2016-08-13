@@ -60,13 +60,14 @@ public class Progress {
         dialog.setMessage(message);
         if (cancelMessage != null) {
             dialog.setCancelable(true);
+            dialog.setCanceledOnTouchOutside(true);
             dialog.setCancelMessage(cancelMessage);
             dialog.setButton(DialogInterface.BUTTON_NEGATIVE, context.getResources().getString(android.R.string.cancel), cancelMessage);
         } else {
             dialog.setCancelable(false);
+            dialog.setCanceledOnTouchOutside(false);
         }
         dialog.setProgress(0);
-        dialog.setCanceledOnTouchOutside(false);
         dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         this.progress = 0;
     }
