@@ -70,7 +70,7 @@ public class MapObjectOptions {
         return a.getAlpha() == b.getAlpha() &&
                 a.getAnchorU() == b.getAnchorU() &&
                 a.getAnchorV() == b.getAnchorV() &&
-                a.getIcon() == b.getIcon() && // rely on same BitmapDescriptor, usage of BitmapDescriptorCache
+                objEquals(a.getIcon(), b.getIcon()) &&
                 a.getInfoWindowAnchorU() == b.getInfoWindowAnchorU() &&
                 a.getInfoWindowAnchorV() == b.getInfoWindowAnchorV() &&
                 objEquals(a.getPosition(), b.getPosition()) &&
