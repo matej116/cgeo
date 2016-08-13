@@ -68,7 +68,7 @@ public class GoogleCachesList {
     }
 
     private Collection<MapObjectOptions> updateMapObjectOptions(Collection<? extends MapObjectOptionsFactory> items, boolean showCircles) {
-        Collection<MapObjectOptions> options = new ArrayList<>(items.size());
+        Collection<MapObjectOptions> options = new HashSet<>(items.size());
         synchronized (createdBy) {
             createdBy.clear();
             for (MapObjectOptionsFactory factory : items) {
