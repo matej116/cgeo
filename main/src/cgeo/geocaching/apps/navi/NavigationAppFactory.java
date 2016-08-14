@@ -1,9 +1,7 @@
 package cgeo.geocaching.apps.navi;
 
 import cgeo.geocaching.CgeoApplication;
-import cgeo.geocaching.models.Geocache;
 import cgeo.geocaching.R;
-import cgeo.geocaching.models.Waypoint;
 import cgeo.geocaching.activity.ActivityMixin;
 import cgeo.geocaching.apps.App;
 import cgeo.geocaching.apps.cache.WhereYouGoApp;
@@ -11,19 +9,20 @@ import cgeo.geocaching.apps.navi.GoogleNavigationApp.GoogleNavigationBikeApp;
 import cgeo.geocaching.apps.navi.GoogleNavigationApp.GoogleNavigationDrivingApp;
 import cgeo.geocaching.apps.navi.GoogleNavigationApp.GoogleNavigationTransitApp;
 import cgeo.geocaching.apps.navi.GoogleNavigationApp.GoogleNavigationWalkingApp;
-import cgeo.geocaching.apps.navi.OruxMapsApp.OruxOnlineMapApp;
 import cgeo.geocaching.apps.navi.OruxMapsApp.OruxOfflineMapApp;
+import cgeo.geocaching.apps.navi.OruxMapsApp.OruxOnlineMapApp;
 import cgeo.geocaching.apps.navi.SygicNavigationApp.SygicNavigationDrivingApp;
 import cgeo.geocaching.apps.navi.SygicNavigationApp.SygicNavigationWalkingApp;
 import cgeo.geocaching.location.Geopoint;
+import cgeo.geocaching.models.Geocache;
+import cgeo.geocaching.models.Waypoint;
 import cgeo.geocaching.settings.Settings;
-
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 
@@ -67,8 +66,10 @@ public final class NavigationAppFactory {
         NAVIGON(new NavigonApp(), 10, R.string.pref_navigation_menu_navigon),
         /** The external Sygic app in walking mode */
         SYGIC_WALKING(new SygicNavigationWalkingApp(), 11, R.string.pref_navigation_menu_sygic_walking),
-        /** The external Sygic app in walking mode */
+        /** The external Sygic app in driving mode */
         SYGIC_DRIVING(new SygicNavigationDrivingApp(), 23, R.string.pref_navigation_menu_sygic_driving),
+        /** The external OsmAnd app */
+        OSM_AND(new OsmAndApp(), 26, R.string.pref_navigation_menu_osmand),
         /** Google Navigation in walking mode */
         GOOGLE_NAVIGATION_WALK(new GoogleNavigationWalkingApp(), 12, R.string.pref_navigation_menu_google_walk),
         /** Google Navigation in bike mode */
@@ -253,21 +254,27 @@ public final class NavigationAppFactory {
     private static void navigateCache(final Activity activity, final Geocache cache, @Nullable final App app) {
         if (app instanceof CacheNavigationApp) {
             final CacheNavigationApp cacheApp = (CacheNavigationApp) app;
-            cacheApp.navigate(activity, cache);
+            if (cache.getCoords() != null) {
+                cacheApp.navigate(activity, cache);
+            }
         }
     }
 
     private static void navigateWaypoint(final Activity activity, final Waypoint waypoint, @Nullable final App app) {
         if (app instanceof WaypointNavigationApp) {
             final WaypointNavigationApp waypointApp = (WaypointNavigationApp) app;
-            waypointApp.navigate(activity, waypoint);
+            if (waypoint.getCoords() != null) {
+                waypointApp.navigate(activity, waypoint);
+            }
         }
     }
 
     private static void navigateGeopoint(final Activity activity, final Geopoint destination, final App app) {
         if (app instanceof GeopointNavigationApp) {
             final GeopointNavigationApp geopointApp = (GeopointNavigationApp) app;
-            geopointApp.navigate(activity, destination);
+            if (destination != null) {
+                geopointApp.navigate(activity, destination);
+            }
         }
     }
 
