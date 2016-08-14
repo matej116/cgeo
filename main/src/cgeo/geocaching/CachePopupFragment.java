@@ -123,7 +123,7 @@ public class CachePopupFragment extends AbstractDialogFragment {
 
             CacheDetailActivity.updateCacheLists(getView(), cache, res);
         } catch (final Exception e) {
-            Log.e("CachePopupFragment.init", e);
+            Log.w("CachePopupFragment.init", e);
         }
 
         // cache is loaded. remove progress-popup if any there
