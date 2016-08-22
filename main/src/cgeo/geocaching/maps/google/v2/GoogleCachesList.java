@@ -39,7 +39,7 @@ public class GoogleCachesList {
     private static Set<MapObjectOptions> diff(Collection<MapObjectOptions> one, Collection<MapObjectOptions> two)
     {
         Set<MapObjectOptions> set = new HashSet<>(one);
-        set.removeAll(two); // rely on MapObjectOptions.equals() implementation
+        set.removeAll(two);
         return set;
     }
 
