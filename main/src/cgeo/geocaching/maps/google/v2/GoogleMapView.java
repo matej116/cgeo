@@ -2,6 +2,9 @@ package cgeo.geocaching.maps.google.v2;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
@@ -17,6 +20,7 @@ import com.google.android.gms.maps.model.VisibleRegion;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -33,6 +37,8 @@ import cgeo.geocaching.maps.interfaces.MapViewImpl;
 import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
 import cgeo.geocaching.maps.interfaces.OnMapDragListener;
 import cgeo.geocaching.maps.interfaces.PositionAndHistory;
+import cgeo.geocaching.models.ICoordinates;
+import cgeo.geocaching.models.IWaypoint;
 import cgeo.geocaching.settings.Settings;
 import cgeo.geocaching.utils.Log;
 
@@ -96,12 +102,9 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
         googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                if (onCacheTapListener != null) {
-                    CachesOverlayItemImpl item = cachesList.getDrawnItem(marker);
-                    if (item != null) {
-                        onCacheTapListener.onCacheTap(item.getCoord());
-                    }
-                }
+                // onCacheTapListener will fire on onSingleTapUp event, not here, because this event
+                // is fired 300 ms after map tap, which is too slow for UI
+
                 // suppress default behaviour (yeah, true == suppress)
                 // ("The default behavior is for the camera to move to the marker and an info window to appear.")
                 return true;
@@ -222,6 +225,36 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
             return false;
         }
 
+        /** can be made static if nonstatic inner clases could have static methods */
+        private boolean insideCachePointDrawable(Point p, Point drawP, Drawable d)
+        {
+            int width = d.getIntrinsicWidth();
+            int height = d.getIntrinsicHeight();
+            int diffX = p.x - drawP.x;
+            int diffY = p.y - drawP.y;
+            // assume drawable is drawn above drawP
+            return
+                    Math.abs(diffX) < width / 2 &&
+                    diffY > -height && diffY < 0;
+
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            Point p = new Point((int)e.getX(), (int)e.getY());
+            LatLng latLng = googleMap.getProjection().fromScreenLocation(p);
+            if (latLng != null && onCacheTapListener != null) {
+                GoogleCacheOverlayItem closest = closest(new Geopoint(latLng.latitude, latLng.longitude));
+                if (closest != null) {
+                    Point waypointPoint = googleMap.getProjection().toScreenLocation(new LatLng(closest.getCoord().getCoords().getLatitude(), closest.getCoord().getCoords().getLongitude()));
+                    if (insideCachePointDrawable(p, waypointPoint, closest.getMarker(0).getDrawable())) {
+                        onCacheTapListener.onCacheTap(closest.getCoord());
+                    }
+                }
+            }
+            return false;
+        }
+
         @Override
         public boolean onScroll(final MotionEvent e1, final MotionEvent e2,
                                 final float distanceX, final float distanceY) {
@@ -272,6 +305,24 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
         } finally {
             lock.unlock();
         }
+    }
+
+    public GoogleCacheOverlayItem closest(Geopoint geopoint)
+    {
+        final int size = cacheItems.size();
+        if (size == 0) return null;
+        Iterator<GoogleCacheOverlayItem> it = cacheItems.iterator();
+        GoogleCacheOverlayItem closest = it.next();
+        float closestDist = closest.getCoord().getCoords().distanceTo(geopoint);
+        while (it.hasNext()) {
+            GoogleCacheOverlayItem next = it.next();
+            float dist = next.getCoord().getCoords().distanceTo(geopoint);
+            if (dist < closestDist) {
+                closest = next;
+                closestDist = dist;
+            }
+        }
+        return closest;
     }
 
     @Override
