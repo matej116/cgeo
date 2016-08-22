@@ -42,7 +42,7 @@ import java.io.FileNotFoundException;
 import java.util.Collection;
 import java.util.Iterator;
 
-public class MapsforgeMapView extends MapView implements MapViewImpl {
+public class MapsforgeMapView extends MapView implements MapViewImpl<MapsforgeCacheOverlayItem> {
     private GestureDetector gestureDetector;
     private OnMapDragListener onDragListener;
     private final MapsforgeMapController mapController = new MapsforgeMapController(getController(), getMapGenerator().getZoomLevelMax());
@@ -314,7 +314,7 @@ public class MapsforgeMapView extends MapView implements MapViewImpl {
     }
 
     @Override
-    public void updateItems(Collection<CachesOverlayItemImpl> itemsPre) {
+    public void updateItems(Collection<MapsforgeCacheOverlayItem> itemsPre) {
         cachesList.updateItems(itemsPre);
     }
 

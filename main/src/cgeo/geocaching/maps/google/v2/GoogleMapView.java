@@ -36,7 +36,7 @@ import cgeo.geocaching.maps.interfaces.PositionAndHistory;
 import cgeo.geocaching.settings.Settings;
 import cgeo.geocaching.utils.Log;
 
-public class GoogleMapView extends MapView implements MapViewImpl, OnMapReadyCallback {
+public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOverlayItem>, OnMapReadyCallback {
 
     private OnMapDragListener onDragListener;
     private final GoogleMapController mapController = new GoogleMapController();
@@ -49,7 +49,7 @@ public class GoogleMapView extends MapView implements MapViewImpl, OnMapReadyCal
 
     private GoogleCachesList cachesList;
     private GestureDetector gestureDetector;
-    private Collection<MapObjectOptionsFactory> cacheItems = new HashSet<>();
+    private Collection<GoogleCacheOverlayItem> cacheItems;
 
     private OnCacheTapListener onCacheTapListener;
     private boolean showCircles = false;
@@ -262,18 +262,11 @@ public class GoogleMapView extends MapView implements MapViewImpl, OnMapReadyCal
     }
 
     @Override
-    public void updateItems(Collection<CachesOverlayItemImpl> itemsPre) {
+    public void updateItems(Collection<GoogleCacheOverlayItem> itemsPre) {
         try {
             lock.lock();
             if (itemsPre != null) {
-                this.cacheItems.clear();
-                for (CachesOverlayItemImpl item : itemsPre) {
-                    if (item instanceof MapObjectOptionsFactory) {
-                        // should be true in all cases, since item should be instance of
-                        // GoogleCacheOverlayItem, but do not fail if this assertion is false
-                        this.cacheItems.add((MapObjectOptionsFactory) item);
-                    }
-                }
+                this.cacheItems = itemsPre;
             }
             redraw();
         } finally {
