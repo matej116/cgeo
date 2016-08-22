@@ -12,7 +12,7 @@ import cgeo.geocaching.location.Viewport;
  * Defines common functions of the provider-specific
  * MapView implementations
  */
-public interface MapViewImpl {
+public interface MapViewImpl<T extends CachesOverlayItemImpl> {
 
     void setBuiltInZoomControls(boolean b);
 
@@ -78,7 +78,7 @@ public interface MapViewImpl {
 
     void onMapReady(MapReadyCallback callback);
 
-    void updateItems(final Collection<CachesOverlayItemImpl> itemsPre);
+    void updateItems(final Collection<T> itemsPre);
 
     boolean getCircles();
 

@@ -29,7 +29,7 @@ import cgeo.geocaching.utils.Log;
 
 public class MapsforgeCachesList extends AbstractItemizedOverlay {
 
-    private List<CachesOverlayItemImpl> items = new ArrayList<>();
+    private List<MapsforgeCacheOverlayItem> items = new ArrayList<>();
     private boolean displayCircles = false;
     private Paint blockedCircle = null;
     private PaintFlagsDrawFilter setFilter = null;
@@ -46,7 +46,7 @@ public class MapsforgeCachesList extends AbstractItemizedOverlay {
         mapItemFactory = mapProvider.getMapItemFactory();
     }
 
-    public void updateItems(final Collection<CachesOverlayItemImpl> itemsPre) {
+    public void updateItems(final Collection<MapsforgeCacheOverlayItem> itemsPre) {
         if (itemsPre == null) {
             return;
         }
@@ -217,7 +217,7 @@ public class MapsforgeCachesList extends AbstractItemizedOverlay {
     }
 
     @Override
-    public CachesOverlayItemImpl createItem(final int index) {
+    public MapsforgeCacheOverlayItem createItem(final int index) {
         try {
             return items.get(index);
         } catch (final Exception e) {
