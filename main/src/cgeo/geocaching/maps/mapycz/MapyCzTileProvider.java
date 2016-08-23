@@ -4,19 +4,14 @@ import com.google.android.gms.maps.model.Tile;
 import com.google.android.gms.maps.model.TileProvider;
 
 import org.apache.commons.io.IOUtils;
-import org.jsoup.helper.HttpConnection;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.HashMap;
-import java.util.Map;
 
-/**
- * Created by matej on 28.7.16.
- */
+
 public class MapyCzTileProvider implements TileProvider {
 
     protected static final String TYPE_DEFAULT = "base-m";
@@ -63,16 +58,5 @@ public class MapyCzTileProvider implements TileProvider {
         }
     }
 
-    private static class Holder {
-        private static Map<String, String> availableMaps;
-        static {
-            availableMaps = new HashMap<>();
-            availableMaps.put("Základní", "base-m");
-        }
-    }
-    public static Map<String, String> getAvailableMaps()
-    {
-        return Holder.availableMaps;
-    }
 
 }
