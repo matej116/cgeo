@@ -1,4 +1,4 @@
-package cgeo.geocaching.maps.google.v2;
+package cgeo.geocaching.maps.google.v2.TileProviders;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;

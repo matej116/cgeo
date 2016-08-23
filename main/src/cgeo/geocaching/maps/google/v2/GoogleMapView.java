@@ -1,13 +1,10 @@
 package cgeo.geocaching.maps.google.v2;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.MotionEvent;
@@ -24,7 +21,6 @@ import com.google.android.gms.maps.model.TileProvider;
 import com.google.android.gms.maps.model.VisibleRegion;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -32,7 +28,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Viewport;
 import cgeo.geocaching.maps.ScaleDrawer;
-import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
+import cgeo.geocaching.maps.google.v2.TileProviders.CachedTileProviderFactory;
+import cgeo.geocaching.maps.google.v2.TileProviders.DensityTileProvider;
 import cgeo.geocaching.maps.interfaces.GeneralOverlay;
 import cgeo.geocaching.maps.interfaces.GeoPointImpl;
 import cgeo.geocaching.maps.interfaces.MapControllerImpl;
@@ -43,9 +40,7 @@ import cgeo.geocaching.maps.interfaces.MapViewImpl;
 import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
 import cgeo.geocaching.maps.interfaces.OnMapDragListener;
 import cgeo.geocaching.maps.interfaces.PositionAndHistory;
-import cgeo.geocaching.maps.mapycz.MapyCzTileProvider;
-import cgeo.geocaching.models.ICoordinates;
-import cgeo.geocaching.models.IWaypoint;
+import cgeo.geocaching.maps.google.v2.TileProviders.MapyCzTileProvider;
 import cgeo.geocaching.settings.Settings;
 import cgeo.geocaching.utils.Log;
 
@@ -222,9 +217,17 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
     }
 
     protected TileProvider createMapyCzTileProvider(final String type) {
-        DisplayMetrics metrics = new DisplayMetrics();
-        ((Activity) context).getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        return new DensityTileProvider(new MapyCzTileProvider(type), metrics);
+
+        // first, create mapycz specific URL provider
+        TileProvider mapycz = new MapyCzTileProvider(type);
+
+        // wrap in to cached provider
+        TileProvider cached = CachedTileProviderFactory.createCacheTileProviderOnSdCard(
+                mapycz, "mapycz_" + type
+        );
+
+        // and finally, wrap it to density tile provider
+        return new DensityTileProvider(cached, getResources().getDisplayMetrics());
     }
 
     @Override

@@ -348,6 +348,8 @@ dependencies {
 
 
     compile 'com.android.support:multidex:+'
+
+    compile 'com.jakewharton:disklrucache:2.0.2'
 }
 
 /*

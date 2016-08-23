@@ -1,4 +1,4 @@
-package cgeo.geocaching.maps.mapycz;
+package cgeo.geocaching.maps.google.v2.TileProviders;
 
 import com.google.android.gms.maps.model.Tile;
 import com.google.android.gms.maps.model.TileProvider;
