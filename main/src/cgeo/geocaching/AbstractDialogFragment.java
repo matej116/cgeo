@@ -15,6 +15,7 @@ import cgeo.geocaching.sensors.GeoDirHandler;
 import cgeo.geocaching.settings.Settings;
 import cgeo.geocaching.storage.DataStore;
 import cgeo.geocaching.ui.CacheDetailsCreator;
+import cgeo.geocaching.ui.CoordinatesFormatSwitcher;
 import cgeo.geocaching.ui.LoggingUI;
 import cgeo.geocaching.utils.AndroidRxUtils;
 import cgeo.geocaching.utils.Log;
@@ -269,6 +270,9 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
 
         // favorite count
         details.add(R.string.cache_favorite, cache.getFavoritePoints() + "×");
+
+        final TextView valueView = details.add(R.string.cache_coordinates, cache.getCoords().toString()).right;
+        valueView.setOnClickListener(new CoordinatesFormatSwitcher(cache.getCoords()));
     }
 
     protected void initCacheDetails() {
