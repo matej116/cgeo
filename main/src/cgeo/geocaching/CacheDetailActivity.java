@@ -763,7 +763,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
     }
 
-    private void notifyDataSetChanged() {
+    private void notifyDataSetChanged(Page page) {
         // This might get called asynchronous when the activity is shut down
         if (isFinishing()) {
             return;
@@ -789,13 +789,21 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
         // reset imagesList so Images view page will be redrawn
         imagesList = null;
-        reinitializeViewPager();
+        if (page == null) {
+            reinitializeViewPager();
+        } else {
+            reinitializeViewPage(page);
+        }
 
         // rendering done! remove progress popup if any there
         invalidateOptionsMenuCompatible();
         progress.dismiss();
 
         Settings.addCacheToHistory(cache.getGeocode());
+    }
+
+    private void notifyDataSetChanged() {
+        notifyDataSetChanged((Page) null);
     }
 
     /**
@@ -1695,7 +1703,9 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                     return null;
                 }
             }.execute();
-            notifyDataSetChanged();
+            // only details page will be changed - list of stored cache, no need to reinitialize
+            // other pages (i.e. initializing description can take up to hundreds milliseconds)
+            notifyDataSetChanged(Page.DETAILS);
         }
     }
 
