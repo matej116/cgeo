@@ -501,7 +501,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                     @Override
                     protected void onPostExecute(final Boolean result) {
                         if (result) {
-                            notifyDataSetChanged();
+                            notifyDataSetChanged(Page.WAYPOINTS);
                         }
                     }
                 }.execute();
@@ -521,7 +521,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                     @Override
                     protected void onPostExecute(final Boolean result) {
                         if (result) {
-                            notifyDataSetChanged();
+                            notifyDataSetChanged(Page.WAYPOINTS);
                         }
                     }
                 }.execute();
