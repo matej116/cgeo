@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import android.text.Html;
 import android.view.View;
+import android.widget.ListView;
 
 import java.util.List;
 
@@ -39,7 +40,7 @@ public class TrackableLogsViewCreator extends LogsViewCreator {
     }
 
     @Override
-    protected void addHeaderView() {
+    protected void addHeaderView(ListView view) {
         // empty
     }
 

@@ -10,6 +10,8 @@ import android.support.v4.view.ViewPager;
 import android.view.View;
 import android.widget.ListView;
 
+import java.util.List;
+
 /**
  * {@link PageViewCreator} for {@link ListView}, which can save scroll state on purging a page from the
  * {@link ViewPager}, and restore the state on re-recreation.
@@ -27,6 +29,7 @@ public abstract class AbstractCachingListViewPageViewCreator extends AbstractCac
     @Nullable
     @Override
     public Bundle getViewState() {
+        ListView view = getView();
         if (view == null) {
             return null;
         }
@@ -45,6 +48,7 @@ public abstract class AbstractCachingListViewPageViewCreator extends AbstractCac
      */
     @Override
     public void setViewState(@NonNull final Bundle state) {
+        ListView view = getView();
         if (view == null) {
             return;
         }
