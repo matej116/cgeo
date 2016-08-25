@@ -23,6 +23,7 @@ import cgeo.geocaching.list.StoredList;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Viewport;
 import cgeo.geocaching.maps.google.v2.GoogleMapProvider;
+import cgeo.geocaching.maps.google.v2.GoogleMapView;
 import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
 import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
 import cgeo.geocaching.maps.interfaces.GeneralOverlay;
@@ -1174,7 +1175,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                         }
 
                         if (needsRepaintForHeading) {
-                            map.overlayPositionAndScale.setHeading(currentHeading);
+                            float mapBearing = map.mapView.getBearing();
+                            map.overlayPositionAndScale.setHeading(currentHeading + mapBearing);
                         }
 
                         if (needsRepaintForDistanceOrAccuracy || needsRepaintForHeading) {

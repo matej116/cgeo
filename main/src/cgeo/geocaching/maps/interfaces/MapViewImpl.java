@@ -32,6 +32,8 @@ public interface MapViewImpl<T extends CachesOverlayItemImpl> {
 
     int getMapZoomLevel();
 
+    float getBearing();
+
     int getWidth();
 
     int getHeight();
