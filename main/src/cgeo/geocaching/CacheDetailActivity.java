@@ -30,6 +30,7 @@ import cgeo.geocaching.gcvote.GCVoteDialog;
 import cgeo.geocaching.list.StoredList;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Units;
+import cgeo.geocaching.maps.DownloadGeocacheService;
 import cgeo.geocaching.models.Geocache;
 import cgeo.geocaching.models.Trackable;
 import cgeo.geocaching.models.Waypoint;
@@ -2360,14 +2361,12 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
     }
 
     protected void storeCache(final Set<Integer> listIds) {
-        final StoreCacheHandler storeCacheHandler = new StoreCacheHandler(CacheDetailActivity.this, progress);
-        progress.show(this, res.getString(R.string.cache_dialog_offline_save_title), res.getString(R.string.cache_dialog_offline_save_message), true, storeCacheHandler.cancelMessage());
-        AndroidRxUtils.networkScheduler.createWorker().schedule(new Action0() {
-            @Override
-            public void call() {
-                cache.store(listIds, storeCacheHandler);
-            }
-        });
+        Intent intent = new Intent(this, DownloadGeocacheService.class);
+        intent.putExtra(DownloadGeocacheService.EXTRA_REQUEST, new DownloadGeocacheService.DownloadRequest(
+                Collections.singleton(cache.getGeocode()),
+                listIds
+        ));
+        startService(intent);
     }
 
     public static void editPersonalNote(final Geocache cache, final CacheDetailActivity activity) {

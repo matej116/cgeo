@@ -126,7 +126,7 @@ public class DownloadGeocacheService extends Service {
         public final Set<String> geocodes;
         public final Set<Integer> lists;
 
-        DownloadRequest(Set<String> geocodes, Set<Integer> lists) {
+        public DownloadRequest(Set<String> geocodes, Set<Integer> lists) {
             this.geocodes = Collections.unmodifiableSet(geocodes);
             this.lists = Collections.unmodifiableSet(lists);
         }

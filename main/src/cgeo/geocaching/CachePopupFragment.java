@@ -4,6 +4,7 @@ import cgeo.geocaching.activity.Progress;
 import cgeo.geocaching.apps.navi.NavigationAppFactory;
 import cgeo.geocaching.compatibility.Compatibility;
 import cgeo.geocaching.list.StoredList;
+import cgeo.geocaching.maps.DownloadGeocacheService;
 import cgeo.geocaching.models.Geocache;
 import cgeo.geocaching.network.Network;
 import cgeo.geocaching.settings.Settings;
@@ -13,6 +14,7 @@ import cgeo.geocaching.utils.AndroidRxUtils;
 import cgeo.geocaching.utils.CancellableHandler;
 import cgeo.geocaching.utils.Log;
 
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
@@ -195,24 +197,27 @@ public class CachePopupFragment extends AbstractDialogFragment {
                 CacheDetailActivity.updateOfflineBox(getView(), cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
                 CacheDetailActivity.updateCacheLists(getView(), cache, res);
             } else {
-                final StoreCacheHandler storeCacheHandler = new StoreCacheHandler(CachePopupFragment.this, R.string.cache_dialog_offline_save_message);
+
                 final FragmentActivity activity = getActivity();
-                progress.show(activity, res.getString(R.string.cache_dialog_offline_save_title), res.getString(R.string.cache_dialog_offline_save_message), true, storeCacheHandler.cancelMessage());
-                AndroidRxUtils.andThenOnUi(Schedulers.io(), new Action0() {
-                    @Override
-                    public void call() {
-                        cache.store(listIds, storeCacheHandler);
-                    }
-                }, new Action0() {
-                    @Override
-                    public void call() {
-                        View view = getView();
-                        if (view == null) return; // ciew can be null since the dialog could be dismissed in the meantime
-                        activity.supportInvalidateOptionsMenu();
-                        CacheDetailActivity.updateOfflineBox(view, cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
-                        CacheDetailActivity.updateCacheLists(view, cache, res);
-                    }
-                });
+
+                Intent intent = new Intent(activity, DownloadGeocacheService.class);
+                intent.putExtra(DownloadGeocacheService.EXTRA_REQUEST, new DownloadGeocacheService.DownloadRequest(
+                        Collections.singleton(cache.getGeocode()),
+                        listIds
+                ));
+                activity.startService(intent);
+
+                // TODO hook DataStore.onCacheUpdate and call this:
+//                 new Action0() {
+//                    @Override
+//                    public void call() {
+//                        View view = getView();
+//                        if (view == null) return; // ciew can be null since the dialog could be dismissed in the meantime
+//                        activity.supportInvalidateOptionsMenu();
+//                        CacheDetailActivity.updateOfflineBox(view, cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
+//                        CacheDetailActivity.updateCacheLists(view, cache, res);
+//                    }
+//                };
             }
         }
     }
