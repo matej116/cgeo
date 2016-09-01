@@ -64,7 +64,6 @@ public class DownloadGeocacheService extends Service {
         builder.setCategory(NotificationCompat.CATEGORY_PROGRESS);
         CharSequence title = getResources().getText(R.string.cache_dialog_offline_save_message);
         builder.setContentTitle(title);
-        builder.setOngoing(true);
         builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         builder.setTicker(title);
         PendingIntent cancelIntent = createCancelPendingIntent(id);
@@ -87,13 +86,13 @@ public class DownloadGeocacheService extends Service {
                 this,
                 id, // id must be passed here, otherwise intent is cached with old id
                 intent,
-                PendingIntent.FLAG_ONE_SHOT // no more flags needed, pendingintent is used only once
+                PendingIntent.FLAG_ONE_SHOT // no more flags needed, pendingIntent is used only once
         );
     }
 
     public void addRequest(DownloadRequest req) {
         int id = idGenerator.next();
-        NotificationUpdater updater = new NotificationUpdater(id);
+        NotificationUpdater updater = new NotificationUpdater(getNotifyManager(), id);
         notifications.put(id, updater);
         downloadCaches(createNotificationBuilder(id), req, updater.getHandler())
                 .subscribe(updater);
@@ -109,6 +108,7 @@ public class DownloadGeocacheService extends Service {
             NotificationUpdater updater = notifications.get(notificationToCancel);
             if (updater != null) {
                 updater.cancel();
+                notifications.delete(notificationToCancel);
             } else {
                 Log.i("DOWNLOAD: notificationUpdater not found");
             }
@@ -175,24 +175,33 @@ public class DownloadGeocacheService extends Service {
                     public Notification call(String downloadedGeocode) {
                         done++;
                         int total = request.geocodes.size();
-                        builder.setProgress(total, done, false);
                         builder.setContentTitle("Downloaded " + (done) + "/" + total);
 
-
-                        if (done > 0) {
-                            final int secondsElapsed = (int) ((System.currentTimeMillis() - startTime) / 1000);
-                            final int secondsRemaining;
-
-                            secondsRemaining = (total - done) * secondsElapsed / done;
-
-                            if (secondsRemaining < 40) {
-                                builder.setContentText(res.getString(R.string.caches_downloading) + " " + res.getString(R.string.caches_eta_ltm));
-                            } else {
-                                final int minsRemaining = secondsRemaining / 60;
-                                builder.setContentText(res.getString(R.string.caches_downloading) + " " + res.getQuantityString(R.plurals.caches_eta_mins, minsRemaining, minsRemaining));
-                            }
+                        if (done == total) {
+                            builder.setContentText(res.getText(R.string.cache_offline_stored));
+                            builder.setOngoing(false);
+                            builder.mActions.clear(); // TODO do not touch @hide property
+                            builder.setCategory(NotificationCompat.CATEGORY_EVENT);
+                            builder.setWhen(System.currentTimeMillis());
                         } else {
-                            builder.setContentText(res.getString(R.string.caches_downloading) + " ?");
+                            builder.setOngoing(true);
+                            builder.setProgress(total, done, false);
+                            if (done > 0) {
+                                final int secondsElapsed = (int) ((System.currentTimeMillis() - startTime) / 1000);
+                                final int secondsRemaining;
+
+                                secondsRemaining = (total - done) * secondsElapsed / done;
+
+                                if (secondsRemaining < 40) {
+                                    builder.setContentText(res.getString(R.string.caches_downloading) + " " + res.getString(R.string.caches_eta_ltm));
+                                } else {
+                                    final int minsRemaining = secondsRemaining / 60;
+                                    builder.setContentText(res.getString(R.string.caches_downloading) + " " + res.getQuantityString(R.plurals.caches_eta_mins, minsRemaining, minsRemaining));
+                                }
+                            } else {
+                                builder.setContentText(res.getString(R.string.caches_downloading) + " ?");
+                                builder.setWhen(System.currentTimeMillis());
+                            }
                         }
 
                         return builder.build();
@@ -208,12 +217,14 @@ public class DownloadGeocacheService extends Service {
     }
 
 
-    private class NotificationUpdater implements Observer<Notification> {
+    private static class NotificationUpdater implements Observer<Notification> {
 
+        private NotificationManager notifyManager;
         final int id;
         private final CancellableHandler handler;
 
-        NotificationUpdater(int id) {
+        NotificationUpdater(NotificationManager notificationManager, int id) {
+            this.notifyManager = notificationManager;
             this.id = id;
             handler = new CancellableHandler() {
                 @Override
@@ -225,7 +236,7 @@ public class DownloadGeocacheService extends Service {
 
         @Override
         public void onCompleted() {
-            cancel();
+            // no need to do anything
         }
 
         @Override
@@ -236,13 +247,12 @@ public class DownloadGeocacheService extends Service {
 
         @Override
         public void onNext(Notification notification) {
-            getNotifyManager().notify(id, notification);
+            notifyManager.notify(id, notification);
         }
 
         public void cancel() {
             handler.cancel(); // set handler as cancelled, storing cache will be canceled
-            notifications.delete(id);  // remove reference to this NotificationUpdater, it is no more needed
-            getNotifyManager().cancel(id); // and remove notification from status bar
+            notifyManager.cancel(id); // and remove notification from status bar
         }
 
         public CancellableHandler getHandler() {
