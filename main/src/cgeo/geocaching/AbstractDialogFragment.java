@@ -123,7 +123,6 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
         final TextView titleview = ButterKnife.findById(getView(), R.id.actionbar_title);
         if (titleview != null) {
             titleview.setText(title);
-
         }
     }
 
@@ -242,8 +241,11 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
         });
     }
 
-    private void resetDetails()
+    protected void resetDetails()
     {
+        if (!isVisible()) {
+            return;
+        }
         details.removeAll();
         fillDetails();
     }

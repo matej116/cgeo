@@ -3,6 +3,7 @@ package cgeo.geocaching;
 import cgeo.geocaching.activity.Progress;
 import cgeo.geocaching.apps.navi.NavigationAppFactory;
 import cgeo.geocaching.compatibility.Compatibility;
+import cgeo.geocaching.enumerations.LoadFlags;
 import cgeo.geocaching.list.StoredList;
 import cgeo.geocaching.maps.DownloadGeocacheService;
 import cgeo.geocaching.models.Geocache;
@@ -14,13 +15,18 @@ import cgeo.geocaching.utils.AndroidRxUtils;
 import cgeo.geocaching.utils.CancellableHandler;
 import cgeo.geocaching.utils.Log;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -40,6 +46,24 @@ import rx.schedulers.Schedulers;
 
 public class CachePopupFragment extends AbstractDialogFragment {
     private final Progress progress = new Progress();
+
+    /**
+     * Receives update notifications from asynchronous processes
+     */
+    private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(final Context context, final Intent intent) {
+
+            String geocode = intent.getStringExtra(Intents.EXTRA_GEOCODE);
+            if (geocode != null && !geocode.equals(CachePopupFragment.this.geocode)) {
+                // intent is for some other geocache
+                return;
+            }
+            cache = DataStore.loadCache(geocode, LoadFlags.LOAD_CACHE_OR_DB);
+            resetDetails();
+        }
+    };
 
     public static DialogFragment newInstance(final String geocode) {
 
@@ -120,16 +144,25 @@ public class CachePopupFragment extends AbstractDialogFragment {
 
             initCacheDetails();
 
-            // offline use
-            CacheDetailActivity.updateOfflineBox(getView(), cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
-
-            CacheDetailActivity.updateCacheLists(getView(), cache, res);
         } catch (final Exception e) {
             Log.w("CachePopupFragment.init", e);
         }
 
         // cache is loaded. remove progress-popup if any there
         progress.dismiss();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        LocalBroadcastManager.getInstance(getActivity()).registerReceiver(updateReceiver, new IntentFilter(Intents.INTENT_CACHE_CHANGED));
+    }
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(updateReceiver);
     }
 
     @Override
@@ -143,6 +176,11 @@ public class CachePopupFragment extends AbstractDialogFragment {
         final TextView titleView = ButterKnife.findById(getView(), R.id.actionbar_title);
         titleView.setCompoundDrawablesWithIntrinsicBounds(Compatibility.getDrawable(getResources(), cache.getType().markerId), null, null, null);
         super.fillDetails();
+
+        // offline use
+        CacheDetailActivity.updateOfflineBox(getView(), cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
+
+        CacheDetailActivity.updateCacheLists(getView(), cache, res);
     }
 
     @Override
@@ -206,18 +244,6 @@ public class CachePopupFragment extends AbstractDialogFragment {
                         listIds
                 ));
                 activity.startService(intent);
-
-                // TODO hook DataStore.onCacheUpdate and call this:
-//                 new Action0() {
-//                    @Override
-//                    public void call() {
-//                        View view = getView();
-//                        if (view == null) return; // ciew can be null since the dialog could be dismissed in the meantime
-//                        activity.supportInvalidateOptionsMenu();
-//                        CacheDetailActivity.updateOfflineBox(view, cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
-//                        CacheDetailActivity.updateCacheLists(view, cache, res);
-//                    }
-//                };
             }
         }
     }

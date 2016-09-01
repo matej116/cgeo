@@ -11,12 +11,14 @@ import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.SparseArray;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Set;
 
+import cgeo.geocaching.Intents;
 import cgeo.geocaching.R;
 import cgeo.geocaching.models.Geocache;
 import cgeo.geocaching.storage.DataStore;
@@ -151,11 +153,19 @@ public class DownloadGeocacheService extends Service {
                                 }).subscribeOn(Schedulers.io());
                     }
                 })
-                .startWith("first") // generate first item to show first notification
+                .startWith((String) null) // generate first item to show first notification
                 .filter(new Func1<String, Boolean>() { // stop generating notification if handler is cancelled
                     @Override
                     public Boolean call(String s) {
                         return handler == null || !handler.isCancelled();
+                    }
+                })
+                .doOnNext(new Action1<String>() {
+                    @Override
+                    public void call(String geocode) {
+                        if (geocode != null) {
+                            sendGeocacheUpdatedBroadcast(geocode);
+                        }
                     }
                 })
                 .map(new Func1<String, Notification>() {
@@ -163,7 +173,6 @@ public class DownloadGeocacheService extends Service {
 
                     @Override
                     public Notification call(String downloadedGeocode) {
-                        Log.i("DOWNLOAD sending to notification: " + downloadedGeocode);
                         done++;
                         int total = request.geocodes.size();
                         builder.setProgress(total, done, false);
@@ -190,6 +199,12 @@ public class DownloadGeocacheService extends Service {
                     }
                 });
 
+    }
+
+    void sendGeocacheUpdatedBroadcast(String geocode) {
+        Intent intent = new Intent(Intents.INTENT_CACHE_CHANGED);
+        intent.putExtra(Intents.EXTRA_GEOCODE, geocode);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
 

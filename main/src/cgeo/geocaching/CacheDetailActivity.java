@@ -814,6 +814,13 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
         @Override
         public void onReceive(final Context context, final Intent intent) {
+
+            String geocode = intent.getStringExtra(Intents.EXTRA_GEOCODE);
+            if (geocode != null && !geocode.equals(CacheDetailActivity.this.geocode)) {
+                // intent is for some other geocache
+                return;
+            }
+
             if (intent.getBooleanExtra(Intents.EXTRA_WPT_PAGE_UPDATE, false)) {
                 getViewCreator(Page.WAYPOINTS).notifyDataSetChanged();
             } else {

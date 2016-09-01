@@ -59,9 +59,11 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.location.Location;
 import android.os.Build;
@@ -71,6 +73,7 @@ import android.os.Message;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -137,8 +140,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private static final int SHOW_PROGRESS = 1;
     private static final int UPDATE_TITLE = 0;
     private static final int INVALIDATE_MAP = 1;
-    private static final int UPDATE_PROGRESS = 0;
-    private static final int FINISHED_LOADING_DETAILS = 1;
 
     private static final String BUNDLE_MAP_SOURCE = "mapSource";
     private static final String BUNDLE_MAP_STATE = "mapState";
@@ -179,7 +180,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private int cachesCnt = 0;
     /** List of waypoints in the viewport */
     private final LeastRecentlyUsedSet<Waypoint> waypoints = new LeastRecentlyUsedSet<>(MAX_CACHES);
-    private int detailTotal = 0;
 
     // views
     private CheckBox myLocSwitch = null;
@@ -194,6 +194,17 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private static final Set<String> dirtyCaches = new HashSet<>();
     // flag for honeycomb special popup menu handling
     private boolean honeycombMenu = false;
+
+
+    private BroadcastReceiver updateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String geocode = intent.getStringExtra(Intents.EXTRA_GEOCODE);
+            if (geocode != null) {
+                markAsDirtyAndRefresh(geocode);
+            }
+        }
+    };
 
     /**
      * if live map is enabled, this is the minimum zoom level, independent of the stored setting
@@ -566,6 +577,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
         LiveMapHint.getInstance().showHint(activity);
         AndroidBeam.disable(activity);
+
+        LocalBroadcastManager.getInstance(activity).registerReceiver(updateReceiver, new IntentFilter(Intents.INTENT_CACHE_CHANGED));
     }
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -605,12 +618,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         }
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        mapView.onResume();
-        resumeSubscription = Subscriptions.from(geoDirUpdate.start(GeoDirHandler.UPDATE_GEODIR), startTimer());
-
+    private void refreshDirtyCaches()
+    {
         final List<String> toRefresh;
         synchronized (dirtyCaches) {
             toRefresh = new ArrayList<>(dirtyCaches);
@@ -636,6 +645,20 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         }
     }
 
+    private void markAsDirtyAndRefresh(String geocode)
+    {
+        markCacheAsDirty(geocode);
+        refreshDirtyCaches();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mapView.onResume();
+        resumeSubscription = Subscriptions.from(geoDirUpdate.start(GeoDirHandler.UPDATE_GEODIR), startTimer());
+        refreshDirtyCaches();
+    }
+
     @Override
     public void onPause() {
         resumeSubscription.unsubscribe();
@@ -658,6 +681,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         if (mapView != null) { // avoid occasionally NPE
             mapView.onDestroy();
         }
+        LocalBroadcastManager.getInstance(activity).unregisterReceiver(updateReceiver);
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
