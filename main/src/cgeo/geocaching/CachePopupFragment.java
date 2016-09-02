@@ -5,7 +5,7 @@ import cgeo.geocaching.apps.navi.NavigationAppFactory;
 import cgeo.geocaching.compatibility.Compatibility;
 import cgeo.geocaching.enumerations.LoadFlags;
 import cgeo.geocaching.list.StoredList;
-import cgeo.geocaching.maps.DownloadGeocacheService;
+import cgeo.geocaching.service.DownloadGeocacheService;
 import cgeo.geocaching.models.Geocache;
 import cgeo.geocaching.network.Network;
 import cgeo.geocaching.settings.Settings;
@@ -17,7 +17,6 @@ import cgeo.geocaching.utils.Log;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
@@ -40,9 +39,8 @@ import java.util.Set;
 
 import butterknife.ButterKnife;
 import org.apache.commons.lang3.StringUtils;
-import rx.functions.Action0;
+
 import rx.functions.Action1;
-import rx.schedulers.Schedulers;
 
 public class CachePopupFragment extends AbstractDialogFragment {
     private final Progress progress = new Progress();

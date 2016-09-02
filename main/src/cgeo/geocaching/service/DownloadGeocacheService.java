@@ -1,4 +1,4 @@
-package cgeo.geocaching.maps;
+package cgeo.geocaching.service;
 
 import android.app.Notification;
 import android.app.NotificationManager;
