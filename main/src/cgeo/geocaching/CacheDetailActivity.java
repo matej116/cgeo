@@ -1125,15 +1125,15 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
             gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(final AdapterView<?> parent, final View view, final int position, final long id) {
-                    toggleAttributesView(view);
+                    toggleAttributesView();
                 }
             });
         }
 
-        protected void toggleAttributesView(View view) {
-            final View textView = ButterKnife.findById(view, R.id.attributes_text);
+        protected void toggleAttributesView() {
+            final View textView = ButterKnife.findById(getView(), R.id.attributes_text);
             textView.setVisibility(textView.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
-            final View gridView = ButterKnife.findById(view, R.id.attributes_grid);
+            final View gridView = ButterKnife.findById(getView(), R.id.attributes_grid);
             gridView.setVisibility(gridView.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
         }
 
@@ -1165,7 +1165,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
                     @Override
                     public void onClick(final View v) {
-                        toggleAttributesView(view);
+                        toggleAttributesView();
                     }
                 });
             } else {
