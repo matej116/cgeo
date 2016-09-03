@@ -39,8 +39,9 @@ import java.util.Set;
 
 import butterknife.ButterKnife;
 import org.apache.commons.lang3.StringUtils;
-
+import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 public class CachePopupFragment extends AbstractDialogFragment {
     private final Progress progress = new Progress();

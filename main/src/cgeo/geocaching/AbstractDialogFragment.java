@@ -269,7 +269,12 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
         details.addTerrain(cache);
         details.addEventDate(cache);
 
-        details.addRating(cache);
+        // rating
+        if (cache.getRating() > 0) {
+            details.addRating(cache);
+        } else {
+            acquireGCVote();
+        }
 
         // favorite count
         details.add(R.string.cache_favorite, cache.getFavoritePoints() + "×");
