@@ -1,11 +1,13 @@
 package cgeo.geocaching.maps.google.v2;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.MotionEvent;
@@ -16,6 +18,9 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.TileOverlay;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.android.gms.maps.model.TileProvider;
 import com.google.android.gms.maps.model.VisibleRegion;
 
 import java.util.Collection;
@@ -33,10 +38,12 @@ import cgeo.geocaching.maps.interfaces.GeoPointImpl;
 import cgeo.geocaching.maps.interfaces.MapControllerImpl;
 import cgeo.geocaching.maps.interfaces.MapProjectionImpl;
 import cgeo.geocaching.maps.interfaces.MapReadyCallback;
+import cgeo.geocaching.maps.interfaces.MapSource;
 import cgeo.geocaching.maps.interfaces.MapViewImpl;
 import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
 import cgeo.geocaching.maps.interfaces.OnMapDragListener;
 import cgeo.geocaching.maps.interfaces.PositionAndHistory;
+import cgeo.geocaching.maps.mapycz.MapyCzTileProvider;
 import cgeo.geocaching.models.ICoordinates;
 import cgeo.geocaching.models.IWaypoint;
 import cgeo.geocaching.settings.Settings;
@@ -62,16 +69,21 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
     private boolean showCircles = false;
 
     private Lock lock = new ReentrantLock();
+    private TileOverlay mapyczTileOverlay;
+
+    private final Context context;
 
     private final ScaleDrawer scaleDrawer = new ScaleDrawer();
 
     public GoogleMapView(final Context context, final AttributeSet attrs) {
         super(context, attrs);
+        this.context = context;
         initialize(context);
     }
 
     public GoogleMapView(final Context context, final AttributeSet attrs, final int defStyle) {
         super(context, attrs, defStyle);
+        this.context = context;
         initialize(context);
     }
 
@@ -196,8 +208,25 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
     @Override
     public void setMapSource() {
         if (googleMap == null) return;
-        boolean satellite = GoogleMapProvider.isSatelliteSource(Settings.getMapSource());
-        googleMap.setMapType(satellite ? GoogleMap.MAP_TYPE_SATELLITE : GoogleMap.MAP_TYPE_NORMAL);
+        MapSource mapSource = Settings.getMapSource();
+        if (mapyczTileOverlay != null) {
+            mapyczTileOverlay.remove();
+            mapyczTileOverlay = null;
+        }
+        if (mapSource instanceof GoogleMapProvider.MapyCzSource) {
+            GoogleMapProvider.MapyCzSource mapyCzSource = (GoogleMapProvider.MapyCzSource) mapSource;
+            googleMap.setMapType(GoogleMap.MAP_TYPE_NONE);
+            mapyczTileOverlay = googleMap.addTileOverlay(new TileOverlayOptions().tileProvider(createMapyCzTileProvider(mapyCzSource.getType())));
+        } else {
+            boolean satellite = GoogleMapProvider.isSatelliteSource(mapSource);
+            googleMap.setMapType(satellite ? GoogleMap.MAP_TYPE_SATELLITE : GoogleMap.MAP_TYPE_NORMAL);
+        }
+    }
+
+    protected TileProvider createMapyCzTileProvider(final String type) {
+        DisplayMetrics metrics = new DisplayMetrics();
+        ((Activity) context).getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        return new DensityTileProvider(new MapyCzTileProvider(type), metrics);
     }
 
     @Override

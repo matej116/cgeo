@@ -908,6 +908,22 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                 final MapSource mapSource = MapProviderFactory.getMapSource(id);
                 if (mapSource != null) {
                     item.setChecked(true);
+                    if (mapSource instanceof GoogleMapProvider.MapyCzSource && ((GoogleMapProvider.MapyCzSource)mapSource).getType() == null) {
+                        final String[] titles = new String[]
+                                {"Základní", "Turistická", "Letecká", "Letecká '12",  "Letecká '06", "Letecká '03", "Zeměpisná", "Z 19. století"};
+                        final String[] items = new String[]
+                                {"base-m",    "wturist-m", "bing",    "ophoto1012-m", "ophoto0406-m", "ophoto0203-m","zemepis-m", "army2-m"};
+                        new AlertDialog.Builder(this.activity)
+                                .setTitle("Kterou mapu?")
+                                .setItems(titles, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        changeMapSource(((GoogleMapProvider.MapyCzSource) mapSource).derive(items[which]));
+                                    }
+                                })
+                                .show();
+                        return false;
+                    }
                     changeMapSource(mapSource);
                     return true;
                 }
