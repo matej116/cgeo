@@ -171,14 +171,16 @@ public class CachePopupFragment extends AbstractDialogFragment {
             setTitle(geocode);
         }
 
-        final TextView titleView = ButterKnife.findById(getView(), R.id.actionbar_title);
+        final View view = getView();
+        assert view != null;
+        final TextView titleView = ButterKnife.findById(view, R.id.actionbar_title);
         titleView.setCompoundDrawablesWithIntrinsicBounds(Compatibility.getDrawable(getResources(), cache.getType().markerId), null, null, null);
         super.fillDetails();
 
         // offline use
-        CacheDetailActivity.updateOfflineBox(getView(), cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
+        CacheDetailActivity.updateOfflineBox(view, cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), null);
 
-        CacheDetailActivity.updateCacheLists(getView(), cache, res);
+        CacheDetailActivity.updateCacheLists(view, cache, res);
     }
 
     @Override

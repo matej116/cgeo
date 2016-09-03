@@ -15,11 +15,7 @@ import cgeo.geocaching.utils.TextUtils;
 import cgeo.geocaching.utils.XmlUtils;
 import cgeo.org.kxml2.io.KXmlSerializer;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.CharEncoding;
-import org.apache.commons.lang3.StringUtils;
 import android.support.annotation.NonNull;
-import org.xmlpull.v1.XmlSerializer;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -30,10 +26,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.CharEncoding;
+import org.apache.commons.lang3.StringUtils;
+import org.xmlpull.v1.XmlSerializer;
+
 public final class GpxSerializer {
-
-
-
 
     private static final SynchronizedDateFormat dateFormatZ = new SynchronizedDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
 
@@ -124,33 +122,18 @@ public final class GpxSerializer {
                 XmlUtils.simpleText(gpx, NS_GPX, "time", dateFormatZ.format(hiddenDate));
             }
 
-            XmlUtils.multipleTexts(gpx, NS_GPX,
-                    "name", cache.getGeocode(),
-                    "desc", cache.getName(),
-                    "url", cache.getUrl(),
-                    "urlname", cache.getName(),
-                    "sym", cache.isFound() && Settings.getIncludeFoundStatus() ? "Geocache Found" : "Geocache",
-                    "type", "Geocache|" + cache.getType().pattern);
+            XmlUtils.multipleTexts(gpx, NS_GPX, "name", cache.getGeocode(), "desc", cache.getName(), "url", cache.getUrl(), "urlname", cache.getName(), "sym", cache.isFound() && Settings.getIncludeFoundStatus() ? "Geocache Found" : "Geocache", "type", "Geocache|" + cache.getType().pattern);
 
             gpx.startTag(NS_GROUNDSPEAK, "cache");
             gpx.attribute("", "id", cache.getCacheId());
             gpx.attribute("", "available", !cache.isDisabled() ? "True" : "False");
             gpx.attribute("", "archived", cache.isArchived() ? "True" : "False");
 
-            XmlUtils.multipleTexts(gpx, NS_GROUNDSPEAK,
-                    "name", cache.getName(),
-                    "placed_by", cache.getOwnerDisplayName(),
-                    "owner", cache.getOwnerUserId(),
-                    "type", cache.getType().pattern,
- "container", cache.getSize().id);
+            XmlUtils.multipleTexts(gpx, NS_GROUNDSPEAK, "name", cache.getName(), "placed_by", cache.getOwnerDisplayName(), "owner", cache.getOwnerUserId(), "type", cache.getType().pattern, "container", cache.getSize().id);
 
             writeAttributes(cache);
 
-            XmlUtils.multipleTexts(gpx, NS_GROUNDSPEAK,
-                    "difficulty", Float.toString(cache.getDifficulty()),
-                    "terrain", Float.toString(cache.getTerrain()),
-                    "country", getCountry(cache),
- "state", getState(cache));
+            XmlUtils.multipleTexts(gpx, NS_GROUNDSPEAK, "difficulty", integerIfPossible(cache.getDifficulty()), "terrain", integerIfPossible(cache.getTerrain()), "country", getCountry(cache), "state", getState(cache));
 
             gpx.startTag(NS_GROUNDSPEAK, "short_description");
             gpx.attribute("", "html", TextUtils.containsHtml(cache.getShortDescription()) ? "True" : "False");
@@ -184,11 +167,7 @@ public final class GpxSerializer {
 
     private void writeGsakExtensions(@NonNull final Geocache cache) throws IOException {
         gpx.startTag(NS_GSAK, "wptExtension");
-        XmlUtils.multipleTexts(gpx, NS_GSAK,
- "Watch", gpxBoolean(cache.isOnWatchlist()),
-                "IsPremium", gpxBoolean(cache.isPremiumMembersOnly()),
-                "FavPoints", Integer.toString(cache.getFavoritePoints()),
-                "GcNote", StringUtils.trimToEmpty(cache.getPersonalNote()));
+        XmlUtils.multipleTexts(gpx, NS_GSAK, "Watch", gpxBoolean(cache.isOnWatchlist()), "IsPremium", gpxBoolean(cache.isPremiumMembersOnly()), "FavPoints", Integer.toString(cache.getFavoritePoints()), "GcNote", StringUtils.trimToEmpty(cache.getPersonalNote()));
         gpx.endTag(NS_GSAK, "wptExtension");
     }
 
@@ -247,12 +226,7 @@ public final class GpxSerializer {
             gpx.attribute("", "lat", Double.toString(coords.getLatitude()));
             gpx.attribute("", "lon", Double.toString(coords.getLongitude()));
             final String waypointTypeGpx = wp.getWaypointType().gpx;
-            XmlUtils.multipleTexts(gpx, NS_GPX,
-                    "name", wp.getGpxId(),
-                    "cmt", wp.getNote(),
-                    "desc", wp.getName(),
-                    "sym", waypointTypeGpx,
-                    "type", "Waypoint|" + waypointTypeGpx);
+            XmlUtils.multipleTexts(gpx, NS_GPX, "name", wp.getGpxId(), "cmt", wp.getNote(), "desc", wp.getName(), "sym", waypointTypeGpx, "type", "Waypoint|" + waypointTypeGpx);
             // add parent reference the GSAK-way
             gpx.startTag(NS_GSAK, "wptExtension");
             gpx.startTag(NS_GSAK, "Parent");
@@ -285,9 +259,7 @@ public final class GpxSerializer {
             gpx.startTag(NS_GROUNDSPEAK, "log");
             gpx.attribute("", "id", Integer.toString(log.id));
 
-            XmlUtils.multipleTexts(gpx, NS_GROUNDSPEAK,
-                    "date", dateFormatZ.format(new Date(log.date)),
-                    "type", log.getType().type);
+            XmlUtils.multipleTexts(gpx, NS_GROUNDSPEAK, "date", dateFormatZ.format(new Date(log.date)), "type", log.getType().type);
 
             gpx.startTag(NS_GROUNDSPEAK, "finder");
             gpx.attribute("", "id", "");
@@ -376,5 +348,12 @@ public final class GpxSerializer {
         }
         // fall back to returning everything, but only for the country
         return cache.getLocation();
+    }
+
+    private static String integerIfPossible(final double value) {
+        if (value == (long) value) {
+            return String.format(Locale.ENGLISH, "%d", (long) value);
+        }
+        return String.format(Locale.ENGLISH, "%s", value);
     }
 }
