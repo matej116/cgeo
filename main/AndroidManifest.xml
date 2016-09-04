@@ -712,7 +712,7 @@
         </service>
 
         <service
-            android:name=".maps.DownloadGeocacheService"
+            android:name=".service.DownloadGeocacheService"
             android:label="Downloading caches on background" >
         </service>
 
