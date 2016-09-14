@@ -96,6 +96,10 @@ public class DownloadGeocacheService extends Service {
 
 
     public void addRequest(DownloadRequest req) {
+        if (req.geocodes.isEmpty()) {
+            return;
+        }
+
         int id = idGenerator.next();
         NotificationUpdater updater = new NotificationUpdater(getNotifyManager(), id);
         notifications.put(id, updater);
