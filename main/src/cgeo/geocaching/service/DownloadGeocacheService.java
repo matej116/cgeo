@@ -217,7 +217,7 @@ public class DownloadGeocacheService extends Service {
     }
 
 
-    private static class NotificationUpdater implements Observer<Notification> {
+    private class NotificationUpdater implements Observer<Notification> {
 
         private NotificationManager notifyManager;
         final int id;
@@ -236,7 +236,7 @@ public class DownloadGeocacheService extends Service {
 
         @Override
         public void onCompleted() {
-            // no need to do anything
+            stopForeground(true);
         }
 
         @Override
@@ -247,6 +247,7 @@ public class DownloadGeocacheService extends Service {
 
         @Override
         public void onNext(Notification notification) {
+            startForeground(id, notification);
             notifyManager.notify(id, notification);
         }
 
