@@ -111,7 +111,7 @@ public class DownloadGeocacheService extends Service {
                 getResources().getText(R.string.waypoint_cancel_edit), // TODO add new resource copied from waypoint_cancel_edit
                 cancelIntent
         );
-        builder.setDeleteIntent(cancelIntent); // probably useless, it is ongoing (= not deletable) notification
+        builder.setDeleteIntent(cancelIntent);
         builder.setContentIntent(req.geocodes.size() > 1 ? createMapPendingIntent() : createGeocachePendingIntent(req.geocodes.iterator().next()));
 
         downloadCaches(builder, req, updater.getHandler())
@@ -129,6 +129,9 @@ public class DownloadGeocacheService extends Service {
             if (updater != null) {
                 updater.cancel();
                 notifications.delete(notificationToCancel);
+                if (notifications.size() == 0) {
+                    stopForeground(false);
+                }
             } else {
                 Log.i("DOWNLOAD: notificationUpdater not found");
             }
@@ -200,6 +203,7 @@ public class DownloadGeocacheService extends Service {
                         if (done == total) {
                             builder.setContentText(res.getText(R.string.cache_offline_stored));
                             builder.setOngoing(false);
+                            builder.setProgress(0, 0, false);
                             builder.mActions.clear(); // TODO do not touch @hide property
                             builder.setCategory(NotificationCompat.CATEGORY_EVENT);
                             builder.setWhen(System.currentTimeMillis());
@@ -237,11 +241,38 @@ public class DownloadGeocacheService extends Service {
     }
 
 
+    private boolean isInForeground = false;
+    private void ensureForeground(int id, Notification notification) {
+        if (!isInForeground) {
+            isInForeground = true;
+            startForeground(id, notification);
+        }
+    }
+    private void updateForeground(int dismissedNotificationId) {
+        NotificationUpdater updater = null;
+        int newId = 0;
+        for (int i = 0; i< notifications.size(); i++) {
+            newId = notifications.keyAt(i);
+            if (notifications.keyAt(i) != dismissedNotificationId) {
+                updater = notifications.valueAt(i);
+                break;
+            }
+        }
+        if (updater != null) {
+            startForeground(newId, updater.getLastNotification());
+            isInForeground = true;
+        } else {
+            stopForeground(false);
+            isInForeground = false;
+        }
+    }
+
     private class NotificationUpdater implements Observer<Notification> {
 
         private NotificationManager notifyManager;
         final int id;
         private final CancellableHandler handler;
+        private Notification lastNotification;
 
         NotificationUpdater(NotificationManager notificationManager, int id) {
             this.notifyManager = notificationManager;
@@ -256,7 +287,7 @@ public class DownloadGeocacheService extends Service {
 
         @Override
         public void onCompleted() {
-            stopForeground(true);
+            updateForeground(id);
         }
 
         @Override
@@ -267,21 +298,29 @@ public class DownloadGeocacheService extends Service {
 
         @Override
         public void onNext(Notification notification) {
-            startForeground(id, notification);
             notifyManager.notify(id, notification);
+            lastNotification = notification;
+            ensureForeground(id, notification);
         }
 
         public void cancel() {
             handler.cancel(); // set handler as cancelled, storing cache will be canceled
+            updateForeground(id);
             notifyManager.cancel(id); // and remove notification from status bar
         }
 
         public CancellableHandler getHandler() {
             return handler;
         }
+
+        Notification getLastNotification() {
+            return lastNotification;
+        }
     }
 
-    private class IdGenerator {
+
+
+    private static class IdGenerator {
         private int id = 0;
 
         int next() {
