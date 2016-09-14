@@ -62,7 +62,7 @@ public class DownloadGeocacheService extends Service {
 
     private NotificationCompat.Builder createNotificationBuilder() {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-        builder.setSmallIcon(R.drawable.cgeo);
+        builder.setSmallIcon(R.drawable.cgeo_notification);
         builder.setCategory(NotificationCompat.CATEGORY_PROGRESS);
         CharSequence title = getResources().getText(R.string.cache_dialog_offline_save_message);
         builder.setContentTitle(title);
