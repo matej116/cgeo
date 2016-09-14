@@ -1705,7 +1705,7 @@ public class Geocache implements IWaypoint {
                 return;
             }
 
-            cache.setLists(lists);
+            cache.setLists(new HashSet<>(lists)); // copy lists, this.lists must be valid, lists can be UnmodifiableSet or other exotic Set
             DataStore.saveCache(cache, EnumSet.of(SaveFlag.DB));
 
             if (CancellableHandler.isCancelled(handler)) {

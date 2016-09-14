@@ -8,7 +8,6 @@ import cgeo.geocaching.R;
 import cgeo.geocaching.SearchResult;
 import cgeo.geocaching.WaypointPopup;
 import cgeo.geocaching.activity.ActivityMixin;
-import cgeo.geocaching.activity.Progress;
 import cgeo.geocaching.connector.ConnectorFactory;
 import cgeo.geocaching.connector.gc.GCLogin;
 import cgeo.geocaching.connector.gc.GCMap;
@@ -22,6 +21,7 @@ import cgeo.geocaching.enumerations.WaypointType;
 import cgeo.geocaching.list.StoredList;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Viewport;
+import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
 import cgeo.geocaching.maps.google.v2.GoogleMapProvider;
 import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
 import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
@@ -43,11 +43,11 @@ import cgeo.geocaching.network.AndroidBeam;
 import cgeo.geocaching.sensors.GeoData;
 import cgeo.geocaching.sensors.GeoDirHandler;
 import cgeo.geocaching.sensors.Sensors;
+import cgeo.geocaching.service.DownloadGeocacheService;
 import cgeo.geocaching.settings.Settings;
 import cgeo.geocaching.storage.DataStore;
 import cgeo.geocaching.utils.AndroidRxUtils;
 import cgeo.geocaching.utils.AngleUtils;
-import cgeo.geocaching.utils.CancellableHandler;
 import cgeo.geocaching.utils.Formatter;
 import cgeo.geocaching.utils.LeastRecentlyUsedSet;
 import cgeo.geocaching.utils.Log;
@@ -57,10 +57,11 @@ import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.location.Location;
 import android.os.Build;
@@ -70,6 +71,7 @@ import android.os.Message;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -136,8 +138,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private static final int SHOW_PROGRESS = 1;
     private static final int UPDATE_TITLE = 0;
     private static final int INVALIDATE_MAP = 1;
-    private static final int UPDATE_PROGRESS = 0;
-    private static final int FINISHED_LOADING_DETAILS = 1;
 
     private static final String BUNDLE_MAP_SOURCE = "mapSource";
     private static final String BUNDLE_MAP_STATE = "mapState";
@@ -169,7 +169,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private static boolean followMyLocation = true;
     // threads
     private Subscription loadTimer;
-    private LoadDetails loadDetailsThread = null;
     /** Time of last {@link LoadRunnable} run */
     private volatile long loadThreadRun = 0L;
     //Interthread communication flag
@@ -179,11 +178,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private int cachesCnt = 0;
     /** List of waypoints in the viewport */
     private final LeastRecentlyUsedSet<Waypoint> waypoints = new LeastRecentlyUsedSet<>(MAX_CACHES);
-    // storing for offline
-    private ProgressDialog waitDialog = null;
-    private int detailTotal = 0;
-    private int detailProgress = 0;
-    private long detailProgressTime = 0L;
 
     // views
     private CheckBox myLocSwitch = null;
@@ -198,6 +192,17 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private static final Set<String> dirtyCaches = new HashSet<>();
     // flag for honeycomb special popup menu handling
     private boolean honeycombMenu = false;
+
+
+    private BroadcastReceiver updateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String geocode = intent.getStringExtra(Intents.EXTRA_GEOCODE);
+            if (geocode != null) {
+                markAsDirtyAndRefresh(geocode);
+            }
+        }
+    };
 
     /**
      * if live map is enabled, this is the minimum zoom level, independent of the stored setting
@@ -392,42 +397,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
     private final Handler showProgressHandler = new ShowProgressHandler(this);
 
-    private final class LoadDetailsHandler extends CancellableHandler {
-
-        @Override
-        public void handleRegularMessage(final Message msg) {
-            if (msg.what == UPDATE_PROGRESS) {
-                if (waitDialog != null) {
-                    final int secondsElapsed = (int) ((System.currentTimeMillis() - detailProgressTime) / 1000);
-                    final int secondsRemaining;
-                    if (detailProgress > 0) {
-                        secondsRemaining = (detailTotal - detailProgress) * secondsElapsed / detailProgress;
-                    } else {
-                        secondsRemaining = (detailTotal - detailProgress) * secondsElapsed;
-                    }
-
-                    waitDialog.setProgress(detailProgress);
-                    if (secondsRemaining < 40) {
-                        waitDialog.setMessage(res.getString(R.string.caches_downloading) + " " + res.getString(R.string.caches_eta_ltm));
-                    } else {
-                        final int minsRemaining = secondsRemaining / 60;
-                        waitDialog.setMessage(res.getString(R.string.caches_downloading) + " " + res.getQuantityString(R.plurals.caches_eta_mins, minsRemaining, minsRemaining));
-                    }
-                }
-            } else if (msg.what == FINISHED_LOADING_DETAILS && waitDialog != null) {
-                waitDialog.dismiss();
-                waitDialog.setOnCancelListener(null);
-            }
-        }
-        @Override
-        public void handleCancel(final Object extra) {
-            if (loadDetailsThread != null) {
-                loadDetailsThread.stopIt();
-            }
-        }
-
-    }
-
     /* Current source id */
     private int currentSourceId;
 
@@ -606,6 +575,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
         LiveMapHint.getInstance().showHint(activity);
         AndroidBeam.disable(activity);
+
+        LocalBroadcastManager.getInstance(activity).registerReceiver(updateReceiver, new IntentFilter(Intents.INTENT_CACHE_CHANGED));
     }
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -645,12 +616,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         }
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        mapView.onResume();
-        resumeSubscription = Subscriptions.from(geoDirUpdate.start(GeoDirHandler.UPDATE_GEODIR), startTimer());
-
+    private void refreshDirtyCaches()
+    {
         final List<String> toRefresh;
         synchronized (dirtyCaches) {
             toRefresh = new ArrayList<>(dirtyCaches);
@@ -676,6 +643,20 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         }
     }
 
+    private void markAsDirtyAndRefresh(String geocode)
+    {
+        markCacheAsDirty(geocode);
+        refreshDirtyCaches();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mapView.onResume();
+        resumeSubscription = Subscriptions.from(geoDirUpdate.start(GeoDirHandler.UPDATE_GEODIR), startTimer());
+        refreshDirtyCaches();
+    }
+
     @Override
     public void onPause() {
         resumeSubscription.unsubscribe();
@@ -693,18 +674,12 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     }
 
     @Override
-    public void onStop() {
-        // Ensure that handlers will not try to update the dialog once the view is detached.
-        waitDialog = null;
-        super.onStop();
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
         if (mapView != null) { // avoid occasionally NPE
             mapView.onDestroy();
         }
+        LocalBroadcastManager.getInstance(activity).unregisterReceiver(updateReceiver);
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
@@ -851,7 +826,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
             case R.id.menu_store_caches:
                 if (!isLoading()) {
                     final Set<String> geocodesInViewport = getGeocodesForCachesInViewport();
-                    final List<String> geocodes = new ArrayList<>();
+                    final Set<String> geocodes = new HashSet<>();
 
                     for (final String geocode : geocodesInViewport) {
                         if (!DataStore.isOffline(geocode, null)) {
@@ -859,12 +834,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                         }
                     }
 
-                    detailTotal = geocodes.size();
-                    detailProgress = 0;
-
-                    if (detailTotal == 0) {
+                    if (geocodes.size() == 0) {
                         ActivityMixin.showToast(activity, res.getString(R.string.warn_save_nothing));
-
                         return true;
                     }
 
@@ -1190,7 +1161,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                         }
 
                         if (needsRepaintForHeading) {
-                            map.overlayPositionAndScale.setHeading(currentHeading);
+                            float mapBearing = map.mapView.getBearing();
+                            map.overlayPositionAndScale.setHeading(currentHeading + mapBearing);
                         }
 
                         if (needsRepaintForDistanceOrAccuracy || needsRepaintForHeading) {
@@ -1556,93 +1528,16 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
      * @param listId
      *            the list to store the caches in
      */
-    private void storeCaches(final List<String> geocodes, final int listId) {
-        final LoadDetailsHandler loadDetailsHandler = new LoadDetailsHandler();
+    private void storeCaches(final Set<String> geocodes, final int listId) {
 
-        waitDialog = new ProgressDialog(activity);
-        waitDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        waitDialog.setCancelable(true);
-        waitDialog.setCancelMessage(loadDetailsHandler.cancelMessage());
-        waitDialog.setMax(detailTotal);
-        waitDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+        // TODO add DataStore.addGeocacheListener(String geocode, GeocacheChangeListener{geocacheChanged(Geocache)} listener)?
 
-            @Override
-            public void onCancel(final DialogInterface arg0) {
-                try {
-                    if (loadDetailsThread != null) {
-                        loadDetailsThread.stopIt();
-                    }
-                } catch (final Exception e) {
-                    Log.e("CGeoMap.storeCaches.onCancel", e);
-                }
-            }
-        });
-
-        final float etaTime = detailTotal * 7.0f / 60.0f;
-        final int roundedEta = Math.round(etaTime);
-        if (etaTime < 0.4) {
-            waitDialog.setMessage(res.getString(R.string.caches_downloading) + " " + res.getString(R.string.caches_eta_ltm));
-        } else {
-            waitDialog.setMessage(res.getString(R.string.caches_downloading) + " " + res.getQuantityString(R.plurals.caches_eta_mins, roundedEta, roundedEta));
-        }
-        waitDialog.show();
-
-        detailProgressTime = System.currentTimeMillis();
-
-        loadDetailsThread = new LoadDetails(loadDetailsHandler, geocodes, listId);
-        loadDetailsThread.start();
+        Intent intent = new Intent(activity, DownloadGeocacheService.class);
+        intent.putExtra(DownloadGeocacheService.EXTRA_REQUEST,
+                new DownloadGeocacheService.DownloadRequest(geocodes, Collections.singleton(listId)));
+        activity.startService(intent);
     }
 
-    /**
-     * Thread to store the caches in the viewport. Started by Activity.
-     */
-
-    private class LoadDetails extends Thread {
-
-        private final CancellableHandler handler;
-        private final List<String> geocodes;
-        private final int listId;
-
-        LoadDetails(final CancellableHandler handler, final List<String> geocodes, final int listId) {
-            this.handler = handler;
-            this.geocodes = geocodes;
-            this.listId = listId;
-        }
-
-        public void stopIt() {
-            handler.cancel();
-        }
-
-        @Override
-        public void run() {
-            if (CollectionUtils.isEmpty(geocodes)) {
-                return;
-            }
-
-            for (final String geocode : geocodes) {
-                try {
-                    if (handler.isCancelled()) {
-                        break;
-                    }
-
-                    if (!DataStore.isOffline(geocode, null)) {
-                        final Set<Integer> lists = new HashSet<>();
-                        lists.add(listId);
-                        Geocache.storeCache(null, geocode, lists, false, handler);
-                    }
-                } catch (final Exception e) {
-                    Log.e("CGeoMap.LoadDetails.run", e);
-                } finally {
-                    // one more cache over
-                    detailProgress++;
-                    handler.sendEmptyMessage(UPDATE_PROGRESS);
-                }
-            }
-
-            // we're done
-            handler.sendEmptyMessage(FINISHED_LOADING_DETAILS);
-        }
-    }
 
     private static synchronized void filter(final Collection<Geocache> caches) {
         final boolean excludeMine = Settings.isExcludeMyCaches();

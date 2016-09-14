@@ -711,6 +711,11 @@
             android:label="@string/tts_service" >
         </service>
 
+        <service
+            android:name=".service.DownloadGeocacheService"
+            android:label="Downloading caches on background" >
+        </service>
+
         <activity
             android:name=".connector.oc.OCAuthorizationActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"

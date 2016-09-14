@@ -53,6 +53,7 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
 
     private LatLng viewCenter;
     private float zoomLevel;
+    private float bearing;
     private VisibleRegion visibleRegion;
 
     private GoogleCachesList cachesList;
@@ -99,6 +100,7 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
                 // update all variable, which getters are available only in main thread
                 viewCenter = cameraPosition.target;
                 zoomLevel = cameraPosition.zoom;
+                bearing = cameraPosition.bearing;
                 VisibleRegion newVisibleRegion = googleMap.getProjection().getVisibleRegion();
                 if (newVisibleRegion != null) {
                     visibleRegion = newVisibleRegion;
@@ -245,6 +247,10 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
         // onTouchEvent is not working for Google's MapView
         gestureDetector.onTouchEvent(ev);
         return super.dispatchTouchEvent(ev);
+    }
+
+    public float getBearing() {
+        return bearing;
     }
 
     private class GestureListener extends SimpleOnGestureListener {

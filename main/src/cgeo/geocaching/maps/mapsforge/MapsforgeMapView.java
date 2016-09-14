@@ -182,6 +182,14 @@ public class MapsforgeMapView extends MapView implements MapViewImpl<MapsforgeCa
     }
 
     /**
+     * Mapsforge map does not have support for map rotation
+     */
+    @Override
+    public float getBearing() {
+        return 0;
+    }
+
+    /**
      * Get the actual map zoom level
      *
      * @return the current map zoom level with no adjustments

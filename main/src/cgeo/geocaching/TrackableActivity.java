@@ -357,8 +357,7 @@ public class TrackableActivity extends AbstractViewPagerActivity<TrackableActivi
 
         @Override
         public View getDispatchedView(final ViewGroup parentView) {
-            view = getLayoutInflater().inflate(R.layout.cachedetail_images_page, parentView, false);
-            return view;
+            return getLayoutInflater().inflate(R.layout.cachedetail_images_page, parentView, false);
         }
     }
 
@@ -417,7 +416,7 @@ public class TrackableActivity extends AbstractViewPagerActivity<TrackableActivi
 
         @Override
         public ScrollView getDispatchedView(final ViewGroup parentView) {
-            view = (ScrollView) getLayoutInflater().inflate(R.layout.trackable_details_view, parentView, false);
+            ScrollView view = (ScrollView) getLayoutInflater().inflate(R.layout.trackable_details_view, parentView, false);
             ButterKnife.bind(this, view);
 
             final CacheDetailsCreator details = new CacheDetailsCreator(TrackableActivity.this, detailsList);

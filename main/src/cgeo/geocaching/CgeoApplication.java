@@ -11,6 +11,7 @@ import cgeo.geocaching.utils.OOMDumpingUncaughtExceptionHandler;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Application;
+import cgeo.geocaching.compatibility.Compatibility;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -25,7 +26,7 @@ import java.lang.reflect.Method;
 
 import com.squareup.leakcanary.LeakCanary;
 
-public class CgeoApplication extends Application {
+public class CgeoApplication extends MultiDexApplication {
 
     private static CgeoApplication instance;
 

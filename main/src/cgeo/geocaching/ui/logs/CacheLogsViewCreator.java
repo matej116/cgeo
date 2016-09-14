@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import android.content.res.Resources;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -54,12 +55,12 @@ public class CacheLogsViewCreator extends LogsViewCreator {
     }
 
     @Override
-    protected void addHeaderView() {
-        addLogCountsHeader();
-        addEmptyLogsHeader();
+    protected void addHeaderView(ListView view) {
+        addLogCountsHeader(view);
+        addEmptyLogsHeader(view);
     }
 
-    private void addLogCountsHeader() {
+    private void addLogCountsHeader(ListView view) {
         final Map<LogType, Integer> logCounts = getCache().getLogCounts();
         if (logCounts != null) {
             final List<Entry<LogType, Integer>> sortedLogCounts = new ArrayList<>(logCounts.size());
@@ -92,7 +93,7 @@ public class CacheLogsViewCreator extends LogsViewCreator {
         }
     }
 
-    private void addEmptyLogsHeader() {
+    private void addEmptyLogsHeader(ListView view) {
         if (getLogs().isEmpty()) {
             final TextView countView = new TextView(activity);
             countView.setText(res.getString(R.string.log_empty_logbook));

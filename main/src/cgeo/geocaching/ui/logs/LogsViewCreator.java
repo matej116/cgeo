@@ -41,8 +41,8 @@ public abstract class LogsViewCreator extends AbstractCachingListViewPageViewCre
 
         final List<LogEntry> logs = getLogs();
 
-        view = (ListView) activity.getLayoutInflater().inflate(R.layout.logs_page, parentView, false);
-        addHeaderView();
+        ListView view = (ListView) activity.getLayoutInflater().inflate(R.layout.logs_page, parentView, false);
+        addHeaderView(view);
         view.setAdapter(new ArrayAdapter<LogEntry>(activity, R.layout.logs_item, logs) {
 
             @Override
@@ -124,7 +124,7 @@ public abstract class LogsViewCreator extends AbstractCachingListViewPageViewCre
 
     protected abstract List<LogEntry> getLogs();
 
-    protected abstract void addHeaderView();
+    protected abstract void addHeaderView(ListView view);
 
     protected abstract void fillCountOrLocation(LogViewHolder holder, final LogEntry log);
 

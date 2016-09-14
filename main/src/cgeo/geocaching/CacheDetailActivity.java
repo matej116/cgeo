@@ -30,6 +30,7 @@ import cgeo.geocaching.gcvote.GCVoteDialog;
 import cgeo.geocaching.list.StoredList;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Units;
+import cgeo.geocaching.service.DownloadGeocacheService;
 import cgeo.geocaching.models.Geocache;
 import cgeo.geocaching.models.Trackable;
 import cgeo.geocaching.models.Waypoint;
@@ -501,7 +502,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                     @Override
                     protected void onPostExecute(final Boolean result) {
                         if (result) {
-                            notifyDataSetChanged();
+                            notifyDataSetChanged(Page.WAYPOINTS);
                         }
                     }
                 }.execute();
@@ -521,7 +522,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                     @Override
                     protected void onPostExecute(final Boolean result) {
                         if (result) {
-                            notifyDataSetChanged();
+                            notifyDataSetChanged(Page.WAYPOINTS);
                         }
                     }
                 }.execute();
@@ -763,7 +764,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
     }
 
-    private void notifyDataSetChanged() {
+    private void notifyDataSetChanged(Page page) {
         // This might get called asynchronous when the activity is shut down
         if (isFinishing()) {
             return;
@@ -789,13 +790,21 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
         // reset imagesList so Images view page will be redrawn
         imagesList = null;
-        reinitializeViewPager();
+        if (page == null) {
+            reinitializeViewPager();
+        } else {
+            reinitializeViewPage(page);
+        }
 
         // rendering done! remove progress popup if any there
         invalidateOptionsMenuCompatible();
         progress.dismiss();
 
         Settings.addCacheToHistory(cache.getGeocode());
+    }
+
+    private void notifyDataSetChanged() {
+        notifyDataSetChanged((Page) null);
     }
 
     /**
@@ -805,6 +814,13 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
         @Override
         public void onReceive(final Context context, final Intent intent) {
+
+            String geocode = intent.getStringExtra(Intents.EXTRA_GEOCODE);
+            if (geocode != null && !geocode.equals(CacheDetailActivity.this.geocode)) {
+                // intent is for some other geocache
+                return;
+            }
+
             if (intent.getBooleanExtra(Intents.EXTRA_WPT_PAGE_UPDATE, false)) {
                 getViewCreator(Page.WAYPOINTS).notifyDataSetChanged();
             } else {
@@ -972,7 +988,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                 return null;
             }
 
-            view = (ScrollView) getLayoutInflater().inflate(R.layout.cachedetail_details_page, parentView, false);
+            final ScrollView view = (ScrollView) getLayoutInflater().inflate(R.layout.cachedetail_details_page, parentView, false);
 
             // Start loading preview map
             AppObservable.bindActivity(CacheDetailActivity.this, previewMap).subscribeOn(AndroidRxUtils.networkScheduler)
@@ -1051,8 +1067,8 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
             }
 
             // cache attributes
-            updateAttributesIcons();
-            updateAttributesText();
+            updateAttributesIcons(view);
+            updateAttributesText(view);
             ButterKnife.findById(view, R.id.attributes_box).setVisibility(cache.getAttributes().isEmpty() ? View.GONE : View.VISIBLE);
 
             updateOfflineBox(view, cache, res, new RefreshCacheClickListener(), new DropCacheClickListener(), new StoreCacheClickListener(), new OnLongClickListener() {
@@ -1072,14 +1088,14 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
             final ImageButton buttonWatchlistRemove = ButterKnife.findById(view, R.id.remove_from_watchlist);
             buttonWatchlistAdd.setOnClickListener(new AddToWatchlistClickListener());
             buttonWatchlistRemove.setOnClickListener(new RemoveFromWatchlistClickListener());
-            updateWatchlistBox();
+            updateWatchlistBox(view);
 
             // favorite points
             final ImageButton buttonFavPointAdd = ButterKnife.findById(view, R.id.add_to_favpoint);
             final ImageButton buttonFavPointRemove = ButterKnife.findById(view, R.id.remove_from_favpoint);
             buttonFavPointAdd.setOnClickListener(new FavoriteAddClickListener());
             buttonFavPointRemove.setOnClickListener(new FavoriteRemoveClickListener());
-            updateFavPointBox();
+            updateFavPointBox(view);
 
             // data license
             final IConnector connector = ConnectorFactory.getConnector(cache);
@@ -1097,7 +1113,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
             return view;
         }
 
-        private void updateAttributesIcons() {
+        private void updateAttributesIcons(View view) {
             final GridView gridView = ButterKnife.findById(view, R.id.attributes_grid);
             final List<String> attributes = cache.getAttributes();
             if (!CacheAttribute.hasRecognizedAttributeIcon(attributes)) {
@@ -1115,13 +1131,13 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
         }
 
         protected void toggleAttributesView() {
-            final View textView = ButterKnife.findById(view, R.id.attributes_text);
+            final View textView = ButterKnife.findById(getView(), R.id.attributes_text);
             textView.setVisibility(textView.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
-            final View gridView = ButterKnife.findById(view, R.id.attributes_grid);
+            final View gridView = ButterKnife.findById(getView(), R.id.attributes_grid);
             gridView.setVisibility(gridView.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
         }
 
-        private void updateAttributesText() {
+        private void updateAttributesText(final View view) {
             final TextView attribView = ButterKnife.findById(view, R.id.attributes_text);
             final List<String> attributes = cache.getAttributes();
             if (attributes.isEmpty()) {
@@ -1188,8 +1204,8 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                 @Override
                 public void handleRegularMessage(final Message message) {
                     super.handleRegularMessage(message);
-                    updateWatchlistBox();
-                    updateFavPointBox();
+                    updateWatchlistBox(getView());
+                    updateFavPointBox(getView());
                 }
             };
 
@@ -1315,7 +1331,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
         /**
          * Show/hide buttons, set text in watchlist box
          */
-        private void updateWatchlistBox() {
+        private void updateWatchlistBox(View view) {
             final LinearLayout layout = ButterKnife.findById(view, R.id.watchlist_box);
             final boolean supportsWatchList = cache.supportsWatchList();
             layout.setVisibility(supportsWatchList ? View.VISIBLE : View.GONE);
@@ -1358,7 +1374,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
         /**
          * Show/hide buttons, set text in favorite line and box
          */
-        private void updateFavPointBox() {
+        private void updateFavPointBox(View view) {
             // Favorite counts
             if (cache.getFavoritePoints() > 0) {
                 favoriteLine.left.setVisibility(View.VISIBLE);
@@ -1440,7 +1456,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                 return null;
             }
 
-            view = (ScrollView) getLayoutInflater().inflate(R.layout.cachedetail_description_page, parentView, false);
+            ScrollView view = (ScrollView) getLayoutInflater().inflate(R.layout.cachedetail_description_page, parentView, false);
             ButterKnife.bind(this, view);
 
             // cache short description
@@ -1695,7 +1711,9 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                     return null;
                 }
             }.execute();
-            notifyDataSetChanged();
+            // only details page will be changed - list of stored cache, no need to reinitialize
+            // other pages (i.e. initializing description can take up to hundreds milliseconds)
+            notifyDataSetChanged(Page.DETAILS);
         }
     }
 
@@ -1713,7 +1731,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
             final List<Waypoint> sortedWaypoints = new ArrayList<>(cache.getWaypoints());
             Collections.sort(sortedWaypoints, Waypoint.WAYPOINT_COMPARATOR);
 
-            view = (ListView) getLayoutInflater().inflate(R.layout.cachedetail_waypoints_page, parentView, false);
+            ListView view = (ListView) getLayoutInflater().inflate(R.layout.cachedetail_waypoints_page, parentView, false);
             view.setClickable(true);
             final View addWaypointButton = getLayoutInflater().inflate(R.layout.cachedetail_waypoints_footer, view, false);
             view.addFooterView(addWaypointButton);
@@ -1870,7 +1888,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                 return null;
             }
 
-            view = (ListView) getLayoutInflater().inflate(R.layout.cachedetail_inventory_page, parentView, false);
+            ListView view = (ListView) getLayoutInflater().inflate(R.layout.cachedetail_inventory_page, parentView, false);
 
             // TODO: fix layout, then switch back to Android-resource and delete copied one
             // this copy is modified to respect the text color
@@ -1907,7 +1925,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                 return null; // something is really wrong
             }
 
-            view = getLayoutInflater().inflate(R.layout.cachedetail_images_page, parentView, false);
+            View view = getLayoutInflater().inflate(R.layout.cachedetail_images_page, parentView, false);
             if (imagesList == null && isCurrentPage(Page.IMAGES)) {
                 loadCacheImages();
             }
@@ -2350,14 +2368,12 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
     }
 
     protected void storeCache(final Set<Integer> listIds) {
-        final StoreCacheHandler storeCacheHandler = new StoreCacheHandler(CacheDetailActivity.this, progress);
-        progress.show(this, res.getString(R.string.cache_dialog_offline_save_title), res.getString(R.string.cache_dialog_offline_save_message), true, storeCacheHandler.cancelMessage());
-        AndroidRxUtils.networkScheduler.createWorker().schedule(new Action0() {
-            @Override
-            public void call() {
-                cache.store(listIds, storeCacheHandler);
-            }
-        });
+        Intent intent = new Intent(this, DownloadGeocacheService.class);
+        intent.putExtra(DownloadGeocacheService.EXTRA_REQUEST, new DownloadGeocacheService.DownloadRequest(
+                Collections.singleton(cache.getGeocode()),
+                listIds
+        ));
+        startService(intent);
     }
 
     public static void editPersonalNote(final Geocache cache, final CacheDetailActivity activity) {
