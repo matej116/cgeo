@@ -15,7 +15,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.getkeepsafe.dexcount'
 
 android {
-    compileSdkVersion "Google Inc.:Google APIs:22"
+    compileSdkVersion "Google Inc.:Google APIs:23"
     buildToolsVersion project.buildToolsVersion
 
     compileOptions {
@@ -28,7 +28,7 @@ android {
         // TODO fill this section and remove the values from AndroidManifest only after the full switch to gradle
         // As these values override the manifest, we might otherwise use different values in gradle and non-gradle builds.
         minSdkVersion project.minSdkVersion
-        targetSdkVersion 21
+        targetSdkVersion 22
         versionName versionNameFromDate()
         versionCode versionCodeFromDate(0)
 
@@ -256,7 +256,7 @@ dependencies {
     compile 'com.android.support:appcompat-v7:20.0.0'
 
     // Play Services
-    def playServicesVersion = '9.2.1'
+    def playServicesVersion = '9.4.0'
     compile "com.google.android.gms:play-services-location:$playServicesVersion"
     compile "com.google.android.gms:play-services-appinvite:$playServicesVersion"
     compile "com.google.android.gms:play-services-maps:$playServicesVersion"
@@ -293,7 +293,7 @@ dependencies {
     androidTestCompile 'com.android.support.test:runner:0.5'
 
     // enforce same version of the support annotations for the main app and the test app
-    def supportAnnotationsVersion = '24.0.0'
+    def supportAnnotationsVersion = '24.2.0'
     compile "com.android.support:support-annotations:$supportAnnotationsVersion"
     androidTestCompile "com.android.support:support-annotations:$supportAnnotationsVersion"
 
@@ -319,7 +319,7 @@ dependencies {
 /*
  * ButterKnife view injection, https://github.com/JakeWharton/butterknife
  */
-    def butterKnifeVersion = '8.2.1'
+    def butterKnifeVersion = '8.4.0'
     compile "com.jakewharton:butterknife:$butterKnifeVersion"
     apt "com.jakewharton:butterknife-compiler:$butterKnifeVersion"
 /*

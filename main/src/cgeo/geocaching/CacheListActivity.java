@@ -14,10 +14,10 @@ import cgeo.geocaching.apps.navi.NavigationAppFactory;
 import cgeo.geocaching.command.AbstractCachesCommand;
 import cgeo.geocaching.command.CopyToListCommand;
 import cgeo.geocaching.command.DeleteListCommand;
+import cgeo.geocaching.command.MakeListUniqueCommand;
 import cgeo.geocaching.command.MoveToListCommand;
 import cgeo.geocaching.command.RenameListCommand;
 import cgeo.geocaching.compatibility.Compatibility;
-import cgeo.geocaching.connector.gc.RecaptchaHandler;
 import cgeo.geocaching.enumerations.CacheListType;
 import cgeo.geocaching.enumerations.CacheType;
 import cgeo.geocaching.enumerations.LoadFlags;
@@ -83,6 +83,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.OpenableColumns;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
@@ -117,8 +119,6 @@ import com.github.amlcurran.showcaseview.targets.ActionViewTarget;
 import com.github.amlcurran.showcaseview.targets.ActionViewTarget.Type;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
@@ -589,6 +589,11 @@ public class CacheListActivity extends AbstractListActivity implements FilteredA
                 refreshCurrentList();
             }
         }
+
+        // always refresh history, an offline log might have been deleted
+        if (type == CacheListType.HISTORY) {
+            refreshCurrentList();
+        }
     }
 
     private void setAdapterCurrentCoordinates(final boolean forceSort) {
@@ -823,6 +828,21 @@ public class CacheListActivity extends AbstractListActivity implements FilteredA
                 if (cacheToShow()) {
                     CacheListApps.getActiveApps().get(0).invoke(CacheListAppUtils.filterCoords(cacheList), this, getFilteredSearch());
                 }
+                return true;
+            case R.id.menu_make_list_unique:
+                new MakeListUniqueCommand(this, listId) {
+
+                    @Override
+                    protected void onFinished() {
+                        refreshSpinnerAdapter();
+                    }
+
+                    @Override
+                    protected void onFinishedUndo() {
+                        refreshSpinnerAdapter();
+                    }
+
+                }.execute();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -1809,9 +1829,6 @@ public class CacheListActivity extends AbstractListActivity implements FilteredA
         showProgress(true);
         showFooterLoadingCaches();
 
-        if (loader != null) {
-            loader.setRecaptchaHandler(new RecaptchaHandler(this, loader));
-        }
         return loader;
     }
 

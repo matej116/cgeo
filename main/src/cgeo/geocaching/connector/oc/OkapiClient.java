@@ -294,6 +294,15 @@ final class OkapiClient {
         return true;
     }
 
+    public static boolean setIgnored(@NonNull final Geocache cache, @NonNull final OCApiConnector connector) {
+        final Parameters params = new Parameters("cache_code", cache.getGeocode());
+        params.add("ignored", "true");
+
+        final ObjectNode data = request(connector, OkapiService.SERVICE_MARK_CACHE, params).data;
+
+        return data != null;
+    }
+
     @NonNull
     public static LogResult postLog(@NonNull final Geocache cache, @NonNull final LogType logType, @NonNull final Calendar date, @NonNull final String log, @Nullable final String logPassword, @NonNull final OCApiConnector connector) {
         final Parameters params = new Parameters("cache_code", cache.getGeocode());
@@ -866,6 +875,10 @@ final class OkapiClient {
         if (!my && Settings.isExcludeMyCaches() && connector.getSupportedAuthLevel() == OAuthLevel.Level3) {
             valueMap.put("exclude_my_own", "true");
             valueMap.put("found_status", "notfound_only");
+        }
+        // OKAPI returns ignored caches, we have to actively suppress them
+        if (connector.getSupportedAuthLevel() == OAuthLevel.Level3) {
+            valueMap.put("ignored_status", "notignored_only");
         }
         if (Settings.getCacheType() != CacheType.ALL) {
             valueMap.put("type", getFilterFromType());

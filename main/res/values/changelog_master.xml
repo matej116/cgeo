@@ -3,9 +3,9 @@
   <!-- changelog for the master branch -->
   <string name="changelog_master" translatable="false">
     <b>Next feature release:</b>\n
-    · Fix: Attribute filter now lists non GC attributes\n
-    · Fix: Better GPX file compatibility with Garmin devices\n
-    · Fix: Scan GeoKrety QRCodes from internal app\n
+    · Removed: No longer supports captchas for getting exact coordinates as basic member\n
+    · New: Support ignoring caches on OpenCaching sites\n
+    · New: Remove duplicate caches from all other lists\n
     \n
     \n
   </string>
