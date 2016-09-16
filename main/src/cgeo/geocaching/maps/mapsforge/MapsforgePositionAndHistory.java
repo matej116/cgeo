@@ -1,5 +1,6 @@
 package cgeo.geocaching.maps.mapsforge;
 
+import cgeo.geocaching.maps.DistanceDrawer;
 import cgeo.geocaching.maps.ScaleDrawer;
 import cgeo.geocaching.maps.interfaces.PositionAndHistory;
 import cgeo.geocaching.location.Geopoint;

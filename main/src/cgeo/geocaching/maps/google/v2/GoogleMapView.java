@@ -4,8 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.GestureDetector;
@@ -24,7 +24,6 @@ import com.google.android.gms.maps.model.TileProvider;
 import com.google.android.gms.maps.model.VisibleRegion;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -32,7 +31,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Viewport;
 import cgeo.geocaching.maps.ScaleDrawer;
-import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
 import cgeo.geocaching.maps.interfaces.GeneralOverlay;
 import cgeo.geocaching.maps.interfaces.GeoPointImpl;
 import cgeo.geocaching.maps.interfaces.MapControllerImpl;
@@ -46,6 +44,7 @@ import cgeo.geocaching.maps.interfaces.PositionAndHistory;
 import cgeo.geocaching.maps.mapycz.MapyCzTileProvider;
 import cgeo.geocaching.models.ICoordinates;
 import cgeo.geocaching.models.IWaypoint;
+import cgeo.geocaching.maps.DistanceDrawer;
 import cgeo.geocaching.settings.Settings;
 import cgeo.geocaching.utils.Log;
 
@@ -74,6 +73,7 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
     private final Context context;
 
     private final ScaleDrawer scaleDrawer = new ScaleDrawer();
+    private DistanceDrawer distanceDrawer;
 
     public GoogleMapView(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -196,7 +196,8 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
     public PositionAndHistory createAddPositionAndScaleOverlay(final Geopoint coords) {
         if (googleMap == null)
             throw new IllegalStateException("Google map not initialized yet"); // TODO check
-        final GoogleOverlay ovl = new GoogleOverlay(googleMap, coords);
+        final GoogleOverlay ovl = new GoogleOverlay(googleMap, this);
+        setDestinationCoords(coords);
         return ovl.getBase();
     }
 
@@ -244,6 +245,28 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
         // onTouchEvent is not working for Google's MapView
         gestureDetector.onTouchEvent(ev);
         return super.dispatchTouchEvent(ev);
+    }
+
+    public void setDestinationCoords(Geopoint destCoords) {
+        this.distanceDrawer = destCoords != null ? new DistanceDrawer(this, destCoords) : null;
+    }
+
+    /**
+     * needed to provie current coordinates for distanceDrawer
+     * called only in GooglePositionAndHistory
+     */
+    public void setCoordinates(Location coordinates) {
+        if (distanceDrawer != null) {
+            distanceDrawer.setCoordinates(coordinates);
+        }
+    }
+
+    public Geopoint getDestinationCoords() {
+        if (distanceDrawer != null) {
+            return distanceDrawer.getDestinationCoords();
+        } else {
+            return null;
+        }
     }
 
     public float getBearing() {
@@ -344,6 +367,7 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
 
     public GoogleCacheOverlayItem closest(Geopoint geopoint)
     {
+        if (cacheItems == null) return null;
         final int size = cacheItems.size();
         if (size == 0) return null;
         Iterator<GoogleCacheOverlayItem> it = cacheItems.iterator();
@@ -367,7 +391,11 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
         canvas.restore();
         // cannot be in draw(), would not work
         scaleDrawer.drawScale(canvas, this);
+        if (distanceDrawer != null) {
+            distanceDrawer.drawDistance(canvas);
+        }
     }
+
 
     public void redraw() {
         if (cachesList == null || cacheItems == null) return;

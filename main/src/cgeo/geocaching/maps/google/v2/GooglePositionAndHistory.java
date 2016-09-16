@@ -5,13 +5,11 @@ import android.graphics.BitmapFactory;
 import android.location.Location;
 
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.maps.android.ui.IconGenerator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +17,6 @@ import java.util.List;
 import cgeo.geocaching.CgeoApplication;
 import cgeo.geocaching.R;
 import cgeo.geocaching.location.Geopoint;
-import cgeo.geocaching.location.Units;
 import cgeo.geocaching.maps.PositionHistory;
 import cgeo.geocaching.maps.interfaces.PositionAndHistory;
 import cgeo.geocaching.settings.Settings;
@@ -28,7 +25,6 @@ import cgeo.geocaching.utils.Log;
 
 public class GooglePositionAndHistory implements PositionAndHistory {
 
-    public static float ZINDEX_DISTANCE_LABEL = 6;
     public static float ZINDEX_DIRECTION_LINE = 5;
     public static float ZINDEX_POSITION = 10;
     public static float ZINDEX_POSITION_ACCURACY_CIRCLE = 3;
@@ -36,7 +32,6 @@ public class GooglePositionAndHistory implements PositionAndHistory {
     public static float ZINDEX_HISTORY_SHADOW = 1;
 
 
-    private LatLng intentCoords;
     private Location coordinates;
     private float heading;
     private PositionHistory history = new PositionHistory();
@@ -46,13 +41,14 @@ public class GooglePositionAndHistory implements PositionAndHistory {
 
     private GoogleMapObjects positionObjs;
     private GoogleMapObjects historyObjs;
+    private GoogleMapView mapView;
 
 
-    public GooglePositionAndHistory(GoogleMap googleMap, Geopoint coords) {
-        this.intentCoords = coords == null ? null : new LatLng(coords.getLatitude(), coords.getLongitude());
+    public GooglePositionAndHistory(GoogleMap googleMap, GoogleMapView mapView) {
         positionObjs = new GoogleMapObjects(googleMap);
         Log.i("positionObjs: " + positionObjs.hashCode());
         historyObjs = new GoogleMapObjects(googleMap);
+        this.mapView = mapView;
     }
 
     @Override
@@ -61,6 +57,7 @@ public class GooglePositionAndHistory implements PositionAndHistory {
         coordinates = coord;
         if (coordChanged) {
             history.rememberTrailPosition(coordinates);
+            mapView.setCoordinates(coordinates);
         }
     }
 
@@ -136,38 +133,18 @@ public class GooglePositionAndHistory implements PositionAndHistory {
                 .zIndex(ZINDEX_POSITION)
         );
 
-        if (intentCoords != null) {
+        Geopoint destCoords = mapView.getDestinationCoords();
+        if (destCoords != null) {
             // draw direction line
 
             positionObjs.addPolyline(new PolylineOptions()
                     .width(4)
                     .color(0x80EB391E)
-                    .add(latLng, intentCoords)
+                    .add(latLng, new LatLng(destCoords.getLatitude(), destCoords.getLongitude()))
                     .zIndex(ZINDEX_DIRECTION_LINE)
             );
 
-
-            // draw distance label, TODO show distance as fixed position on viewport, not as marker at coords
-
-            BitmapDescriptor bd = BitmapDescriptorFactory.fromBitmap(
-                    new IconGenerator(CgeoApplication.getInstance().getApplicationContext())
-                            .makeIcon(Units.getDistanceFromMeters(getDistance(coordinates, intentCoords))));
-
-            positionObjs.addMarker(new MarkerOptions()
-                    .icon(bd)
-                    .position(latLng)
-                    .zIndex(ZINDEX_DISTANCE_LABEL)
-            );
         }
-    }
-
-    /**
-     * helper function to compute distance between Location and LatLng
-     */
-    private static float getDistance(Location l1, LatLng l2) {
-        final float results[] = new float[1];
-        Location.distanceBetween(l1.getLatitude(), l1.getLongitude(), l2.latitude, l2.longitude, results);
-        return results[0];
     }
 
 

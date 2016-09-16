@@ -261,8 +261,6 @@ dependencies {
     compile "com.google.android.gms:play-services-appinvite:$playServicesVersion"
     compile "com.google.android.gms:play-services-maps:$playServicesVersion"
 
-    compile 'com.google.maps.android:android-maps-utils:0.4+'
-
     // somehow there is a transitive play service dependency which we don't want
     configurations.all*.exclude module: "play-services-measurement"
 
