@@ -150,6 +150,7 @@ android {
     }
 
     packagingOptions {
+        // you can double click an APK file in Android Studio 2.2+ to see what's in there
         // license files of libs are not needed in our APK
         exclude 'META-INF/DEPENDENCIES'
         exclude 'META-INF/dependencies'
@@ -164,9 +165,12 @@ android {
         exclude 'COPYING'
         exclude 'COPYING.LESSER'
         exclude '.readme'
+        // AndroidAnnotations
+        exclude 'androidannotations-api.properties'
         // findbugs
         exclude 'META-INF/maven/com.google.code.findbugs/jsr305/pom.properties'
         exclude 'META-INF/maven/com.google.code.findbugs/jsr305/pom.xml'
+        exclude 'jsr305_annotations/Jsr305_annotations.gwt.xml'
         // mapsforge
         exclude 'META-INF/maven/org.mapsforge/mapsforge-map-reader/pom.properties'
         exclude 'META-INF/maven/org.mapsforge/mapsforge-map-reader/pom.xml'
@@ -174,6 +178,11 @@ android {
         exclude 'META-INF/maven/org.mapsforge/mapsforge-map/pom.xml'
         exclude 'COPYING.LESSER.v3'
         exclude 'COPYING.v3'
+        // Play Services
+        exclude 'build-data.properties'
+        // rxjava
+        exclude 'META-INF/rxandroid.properties'
+        exclude 'META-INF/rxjava.properties'
     }
 
     productFlavors {
@@ -269,21 +278,30 @@ dependencies {
     compile 'org.apache.commons:commons-lang3:3.4'
     compile 'org.apache.commons:commons-compress:1.12'
     compile 'commons-io:commons-io:2.5'
-    compile 'com.google.code.findbugs:annotations:3.0.1u2'
-    androidTestCompile 'com.google.code.findbugs:annotations:3.0.1u2'
+    compile ('com.google.code.findbugs:annotations:3.0.1u2') {
+        exclude group: 'com.google.code.findbugs', module: 'jsr305'
+        exclude group: 'net.jcip', module: 'jcip-annotations'
+    }
+    androidTestCompile ('com.google.code.findbugs:annotations:3.0.1u2') {
+        exclude group: 'com.google.code.findbugs', module: 'jsr305'
+        exclude group: 'net.jcip', module: 'jcip-annotations'
+    }
 
     // Reactive extensions
-    compile 'io.reactivex:rxjava:1.1.9'
+    def rxjavaVersion = '1.2.0'
+    compile "io.reactivex:rxjava:$rxjavaVersion"
     compile 'io.reactivex:rxandroid:0.25.0'
+    // ProGuard rules for RxJava
+    compile "com.artemzin.rxjava:proguard-rules:$rxjavaVersion.0"
 
     // Jackson XML processing
-    def jacksonVersion = '2.8.1'
+    def jacksonVersion = '2.8.3'
     compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
     compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
 
     // Zxing barcode reader integration
-    compile 'com.google.zxing:android-integration:3.2.1'
+    compile 'com.google.zxing:android-integration:3.3.0'
 
     // Undo toast
     compile 'com.github.jenzz.undobar:library:1.3:api8Release@aar'
@@ -293,7 +311,7 @@ dependencies {
     androidTestCompile 'com.android.support.test:runner:0.5'
 
     // enforce same version of the support annotations for the main app and the test app
-    def supportAnnotationsVersion = '24.2.0'
+    def supportAnnotationsVersion = '24.2.1'
     compile "com.android.support:support-annotations:$supportAnnotationsVersion"
     androidTestCompile "com.android.support:support-annotations:$supportAnnotationsVersion"
 
@@ -334,7 +352,7 @@ dependencies {
     compile 'com.github.renaudcerrato:ViewPagerIndicator:2.4.1-gradle'
     
     // reliable process restart
-    compile 'com.jakewharton:process-phoenix:1.0.2'
+    compile 'com.jakewharton:process-phoenix:1.1.0'
 
     // memory leak detection
     def leakCanaryVersion = '1.4-beta2'
@@ -343,6 +361,8 @@ dependencies {
     nightlyCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"
     rcCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"
     testCompile "com.squareup.leakcanary:leakcanary-android-no-op:$leakCanaryVersion"
+	// avoid innerclass proguard warnings http://stackoverflow.com/a/38255810/44089
+	debugCompile 'com.squareup.haha:haha:2.0.3'
 
 
     compile 'com.android.support:multidex:+'

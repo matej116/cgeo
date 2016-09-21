@@ -1,6 +1,8 @@
 package cgeo.geocaching.location;
 
-import org.junit.Assert;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.offset;
+
 import org.junit.Test;
 
 /**
@@ -12,72 +14,73 @@ public class UTMPointFormatTest {
     public void testParseUTMStringSimple() {
         final UTMPoint utm = new UTMPoint("54S 293848 3915114");
 
-        Assert.assertEquals(54, utm.getZoneNumber());
-        Assert.assertEquals('S', utm.getZoneLetter());
-        Assert.assertEquals(293848, utm.getEasting(), 1.1d);
-        Assert.assertEquals(3915114, utm.getNorthing(), 1.1d);
+        assertThat(utm.getZoneNumber()).isEqualTo(54);
+        assertThat(utm.getZoneLetter()).isEqualTo('S');
+        assertThat(utm.getEasting()).isEqualTo(293848, offset(1.1d));
+        assertThat(utm.getNorthing()).isEqualTo(3915114, offset(1.1d));
     }
 
     @Test
     public void testParseUTMStringWithEandN() {
         final UTMPoint utm = new UTMPoint("54S E 293848 N 3915114");
 
-        Assert.assertEquals(54, utm.getZoneNumber());
-        Assert.assertEquals('S', utm.getZoneLetter());
-        Assert.assertEquals(293848, utm.getEasting(), 1.1d);
-        Assert.assertEquals(3915114, utm.getNorthing(), 1.1d);
+        assertThat(utm.getZoneNumber()).isEqualTo(54);
+        assertThat(utm.getZoneLetter()).isEqualTo('S');
+        assertThat(utm.getEasting()).isEqualTo(293848, offset(1.1d));
+        assertThat(utm.getNorthing()).isEqualTo(3915114, offset(1.1d));
     }
 
     @Test
     public void testParseUTMStringWithDecimals() {
         final UTMPoint utm = new UTMPoint("54S 293848.4 3915114.5");
 
-        Assert.assertEquals(54, utm.getZoneNumber());
-        Assert.assertEquals('S', utm.getZoneLetter());
-        Assert.assertEquals(293848.4, utm.getEasting(), 1.1d);
-        Assert.assertEquals(3915114.5, utm.getNorthing(), 1.1d);
+        assertThat(utm.getZoneNumber()).isEqualTo(54);
+        assertThat(utm.getZoneLetter()).isEqualTo('S');
+        assertThat(utm.getEasting()).isEqualTo(293848.4, offset(1.1d));
+        assertThat(utm.getNorthing()).isEqualTo(3915114.5, offset(1.1d));
     }
 
     @Test
     public void testParseUTMStringWithLowerCaseLetters() {
         final UTMPoint utm = new UTMPoint("54s e 293848 n 3915114");
 
-        Assert.assertEquals(54, utm.getZoneNumber());
-        Assert.assertEquals('S', utm.getZoneLetter());
-        Assert.assertEquals(293848, utm.getEasting(), 1.1d);
-        Assert.assertEquals(3915114, utm.getNorthing(), 1.1d);
+        assertThat(utm.getZoneNumber()).isEqualTo(54);
+        assertThat(utm.getZoneLetter()).isEqualTo('S');
+        assertThat(utm.getEasting()).isEqualTo(293848, offset(1.1d));
+        assertThat(utm.getNorthing()).isEqualTo(3915114, offset(1.1d));
     }
 
     @Test
     public void testParseUTMStringWithCommaAsDecimalSeparator() {
         final UTMPoint utm = new UTMPoint("54S 293848,4 3915114,5");
 
-        Assert.assertEquals(54, utm.getZoneNumber());
-        Assert.assertEquals('S', utm.getZoneLetter());
-        Assert.assertEquals(293848.4, utm.getEasting(), 1.1d);
-        Assert.assertEquals(3915114.5, utm.getNorthing(), 1.1d);
+        assertThat(utm.getZoneNumber()).isEqualTo(54);
+        assertThat(utm.getZoneLetter()).isEqualTo('S');
+        assertThat(utm.getEasting()).isEqualTo(293848.4, offset(1.1d));
+        assertThat(utm.getNorthing()).isEqualTo(3915114.5, offset(1.1d));
     }
 
     @Test
     public void testParseUTMStringWithBlankAfterZoneNumber() {
         final UTMPoint utm = new UTMPoint("54 S 293848 3915114");
 
-        Assert.assertEquals(54, utm.getZoneNumber());
-        Assert.assertEquals('S', utm.getZoneLetter());
-        Assert.assertEquals(293848, utm.getEasting(), 1.1d);
-        Assert.assertEquals(3915114, utm.getNorthing(), 1.1d);
+        assertThat(utm.getZoneNumber()).isEqualTo(54);
+        assertThat(utm.getZoneLetter()).isEqualTo('S');
+        assertThat(utm.getEasting()).isEqualTo(293848, offset(1.1d));
+        assertThat(utm.getNorthing()).isEqualTo(3915114, offset(1.1d));
     }
 
     @Test
     public void testParseUTMStringWithSingleDigitZoneNumber() {
         final UTMPoint utm = new UTMPoint("5S 293848 3915114");
 
-        Assert.assertEquals(5, utm.getZoneNumber());
-        Assert.assertEquals('S', utm.getZoneLetter());
-        Assert.assertEquals(293848, utm.getEasting(), 1.1d);
-        Assert.assertEquals(3915114, utm.getNorthing(), 1.1d);
+        assertThat(utm.getZoneNumber()).isEqualTo(5);
+        assertThat(utm.getZoneLetter()).isEqualTo('S');
+        assertThat(utm.getEasting()).isEqualTo(293848, offset(1.1d));
+        assertThat(utm.getNorthing()).isEqualTo(3915114, offset(1.1d));
     }
 
+    @SuppressWarnings("unused")
     @Test(expected = UTMPoint.ParseException.class)
     public void testParseUTMStringWithException() {
         new UTMPoint("5S blah blub");
@@ -85,12 +88,12 @@ public class UTMPointFormatTest {
 
     @Test
     public void testToString() {
-        Assert.assertEquals("54S E 293848 N 3915114", new UTMPoint(54, 'S', 293848, 3915114).toString());
+        assertThat(new UTMPoint(54, 'S', 293848, 3915114).toString()).isEqualTo("54S E 293848 N 3915114");
     }
 
     @Test
     public void testToStringWithRoundedDecimals() {
-        Assert.assertEquals("54S E 293848 N 3915114", new UTMPoint(54, 'S', 293847.5, 3915114.3).toString());
+        assertThat(new UTMPoint(54, 'S', 293847.5, 3915114.3).toString()).isEqualTo("54S E 293848 N 3915114");
     }
 
 }

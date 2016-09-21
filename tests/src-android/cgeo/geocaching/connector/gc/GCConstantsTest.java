@@ -1,12 +1,12 @@
 package cgeo.geocaching.connector.gc;
 
-import android.test.AndroidTestCase;
-import android.text.Html;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import cgeo.geocaching.test.mock.MockedCache;
 import cgeo.geocaching.utils.TextUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import android.test.AndroidTestCase;
+import android.text.Html;
 
 public class GCConstantsTest extends AndroidTestCase {
 
@@ -33,7 +33,7 @@ public class GCConstantsTest extends AndroidTestCase {
 
     private static void assertCacheCount(final int count, final String html) {
         try {
-            assertEquals(count, Integer.parseInt(TextUtils.getMatch(html, GCConstants.PATTERN_CACHES_FOUND, true, "0").replaceAll("[,.]", "")));
+            assertThat(Integer.parseInt(TextUtils.getMatch(html, GCConstants.PATTERN_CACHES_FOUND, true, "0").replaceAll("[,.]", ""))).isEqualTo(count);
         } catch (final NumberFormatException e) {
             fail();
         }

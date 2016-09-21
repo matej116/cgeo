@@ -1,5 +1,9 @@
 package cgeo.geocaching.connector.gc;
 
+import static cgeo.geocaching.connector.gc.GCParser.deleteModifiedCoordinates;
+import static cgeo.geocaching.connector.gc.GCParser.editModifiedCoordinates;
+import static cgeo.geocaching.connector.gc.GCParser.requestHtmlPage;
+import static cgeo.geocaching.enumerations.LoadFlags.LOAD_CACHE_ONLY;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import cgeo.geocaching.CgeoApplication;
@@ -20,13 +24,13 @@ import cgeo.geocaching.test.mock.MockedCache;
 import cgeo.geocaching.utils.CancellableHandler;
 import cgeo.test.Compare;
 
-import org.apache.commons.lang3.StringUtils;
-
 import android.support.annotation.RawRes;
 import android.test.suitebuilder.annotation.MediumTest;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
 
 public class GCParserTest extends AbstractResourceInstrumentationTestCase {
 
@@ -162,19 +166,19 @@ public class GCParserTest extends AbstractResourceInstrumentationTestCase {
         final Geocache cache = new Geocache();
         cache.setGeocode("GC2ZN4G");
         // upload coordinates
-        GCParser.editModifiedCoordinates(cache, new Geopoint("N51 21.544", "E07 02.566"));
+        editModifiedCoordinates(cache, new Geopoint("N51 21.544", "E07 02.566"));
         cache.dropSynchronous();
-        final String page = GCParser.requestHtmlPage(cache.getGeocode(), null, "n");
-        final Geocache cache2 = GCParser.parseAndSaveCacheFromText(page, null).getFirstCacheFromResult(LoadFlags.LOAD_CACHE_ONLY);
+        final String page = requestHtmlPage(cache.getGeocode(), null, "n");
+        final Geocache cache2 = GCParser.parseAndSaveCacheFromText(page, null).getFirstCacheFromResult(LOAD_CACHE_ONLY);
         assertThat(cache2).isNotNull();
         assert cache2 != null; // eclipse bug
         assertThat(cache2.hasUserModifiedCoords()).isTrue();
-        assertEquals(new Geopoint("N51 21.544", "E07 02.566"), cache2.getCoords());
+        assertThat(cache2.getCoords()).isEqualTo(new Geopoint("N51 21.544", "E07 02.566"));
         // delete coordinates
-        GCParser.deleteModifiedCoordinates(cache2);
+        deleteModifiedCoordinates(cache2);
         cache2.dropSynchronous();
-        final String page2 = GCParser.requestHtmlPage(cache.getGeocode(), null, "n");
-        final Geocache cache3 = GCParser.parseAndSaveCacheFromText(page2, null).getFirstCacheFromResult(LoadFlags.LOAD_CACHE_ONLY);
+        final String page2 = requestHtmlPage(cache.getGeocode(), null, "n");
+        final Geocache cache3 = GCParser.parseAndSaveCacheFromText(page2, null).getFirstCacheFromResult(LOAD_CACHE_ONLY);
         assertThat(cache3).isNotNull();
         assert cache3 != null; // eclipse bug
         assertThat(cache3.hasUserModifiedCoords()).isFalse();
