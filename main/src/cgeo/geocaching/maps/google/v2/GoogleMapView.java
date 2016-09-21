@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
@@ -40,7 +41,10 @@ import cgeo.geocaching.maps.interfaces.MapViewImpl;
 import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
 import cgeo.geocaching.maps.interfaces.OnMapDragListener;
 import cgeo.geocaching.maps.interfaces.PositionAndHistory;
-import cgeo.geocaching.maps.google.v2.TileProviders.MapyCzTileProvider;
+import cgeo.geocaching.maps.mapycz.MapyCzTileProvider;
+import cgeo.geocaching.models.ICoordinates;
+import cgeo.geocaching.models.IWaypoint;
+import cgeo.geocaching.maps.DistanceDrawer;
 import cgeo.geocaching.settings.Settings;
 import cgeo.geocaching.utils.Log;
 
@@ -69,6 +73,7 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
     private final Context context;
 
     private final ScaleDrawer scaleDrawer = new ScaleDrawer();
+    private DistanceDrawer distanceDrawer;
 
     public GoogleMapView(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -191,7 +196,8 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
     public PositionAndHistory createAddPositionAndScaleOverlay(final Geopoint coords) {
         if (googleMap == null)
             throw new IllegalStateException("Google map not initialized yet"); // TODO check
-        final GoogleOverlay ovl = new GoogleOverlay(googleMap, coords);
+        final GoogleOverlay ovl = new GoogleOverlay(googleMap, this);
+        setDestinationCoords(coords);
         return ovl.getBase();
     }
 
@@ -247,6 +253,28 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
         // onTouchEvent is not working for Google's MapView
         gestureDetector.onTouchEvent(ev);
         return super.dispatchTouchEvent(ev);
+    }
+
+    public void setDestinationCoords(Geopoint destCoords) {
+        this.distanceDrawer = destCoords != null ? new DistanceDrawer(this, destCoords) : null;
+    }
+
+    /**
+     * needed to provie current coordinates for distanceDrawer
+     * called only in GooglePositionAndHistory
+     */
+    public void setCoordinates(Location coordinates) {
+        if (distanceDrawer != null) {
+            distanceDrawer.setCoordinates(coordinates);
+        }
+    }
+
+    public Geopoint getDestinationCoords() {
+        if (distanceDrawer != null) {
+            return distanceDrawer.getDestinationCoords();
+        } else {
+            return null;
+        }
     }
 
     public float getBearing() {
@@ -347,6 +375,7 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
 
     public GoogleCacheOverlayItem closest(Geopoint geopoint)
     {
+        if (cacheItems == null) return null;
         final int size = cacheItems.size();
         if (size == 0) return null;
         Iterator<GoogleCacheOverlayItem> it = cacheItems.iterator();
@@ -370,7 +399,11 @@ public class GoogleMapView extends MapView implements MapViewImpl<GoogleCacheOve
         canvas.restore();
         // cannot be in draw(), would not work
         scaleDrawer.drawScale(canvas, this);
+        if (distanceDrawer != null) {
+            distanceDrawer.drawDistance(canvas);
+        }
     }
+
 
     public void redraw() {
         if (cachesList == null || cacheItems == null) return;

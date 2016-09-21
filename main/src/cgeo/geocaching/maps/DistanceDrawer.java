@@ -1,9 +1,10 @@
-package cgeo.geocaching.maps.mapsforge;
+package cgeo.geocaching.maps;
 
 import cgeo.geocaching.CgeoApplication;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Units;
 import cgeo.geocaching.maps.interfaces.MapViewImpl;
+import cgeo.geocaching.utils.Log;
 
 import android.content.Context;
 import android.graphics.BlurMaskFilter;
@@ -61,7 +62,11 @@ public class DistanceDrawer {
         distanceText = Units.getDistanceFromKilometers(distance);
     }
 
-    void drawDistance(final Canvas canvas) {
+    public Geopoint getDestinationCoords() {
+        return destinationCoords;
+    }
+
+    public void drawDistance(final Canvas canvas) {
         if (distanceText == null) {
             return;
         }

@@ -13,6 +13,8 @@ import cgeo.geocaching.compatibility.Compatibility;
 import cgeo.geocaching.connector.ConnectorFactory;
 import cgeo.geocaching.connector.IConnector;
 import cgeo.geocaching.connector.capability.IgnoreCapability;
+import cgeo.geocaching.connector.capability.PersonalNoteCapability;
+import cgeo.geocaching.connector.capability.WatchListCapability;
 import cgeo.geocaching.connector.gc.GCConnector;
 import cgeo.geocaching.connector.gc.GCConstants;
 import cgeo.geocaching.connector.trackable.TrackableBrand;
@@ -97,6 +99,7 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.view.ActionMode;
@@ -668,8 +671,10 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                     }
                 });
                 // For consistency, remove also the local cache immediately from memory cache and database
-                dropCache();
-                DataStore.removeCache(cache.getGeocode(), EnumSet.of(RemoveFlag.DB));
+                if (cache.isOffline()) {
+                    dropCache();
+                    DataStore.removeCache(cache.getGeocode(), EnumSet.of(RemoveFlag.DB));
+                }
             }
         });
     }
@@ -1013,7 +1018,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                 span.setSpan(new StrikethroughSpan(), 0, span.toString().length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             if (cache.isArchived()) {
-                span.setSpan(new ForegroundColorSpan(res.getColor(R.color.archived_cache_color)), 0, span.toString().length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                span.setSpan(new ForegroundColorSpan(ContextCompat.getColor(app, R.color.archived_cache_color)), 0, span.toString().length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
 
             addContextMenu(details.add(R.string.cache_name, span).right);
@@ -1022,8 +1027,7 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
             addContextMenu(details.add(R.string.cache_geocode, cache.getGeocode()).right);
             details.addCacheState(cache);
 
-            details.addDistance(cache, cacheDistanceView);
-            cacheDistanceView = details.getValueView();
+            cacheDistanceView = details.addDistance(cache, cacheDistanceView);
 
             details.addDifficulty(cache);
             details.addTerrain(cache);
@@ -1260,7 +1264,8 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
         /** Add this cache to the watchlist of the user */
         private void watchListAdd(final SimpleCancellableHandler handler) {
-            if (ConnectorFactory.getConnector(cache).addToWatchlist(cache)) {
+            final WatchListCapability connector = (WatchListCapability) ConnectorFactory.getConnector(cache);
+            if (connector.addToWatchlist(cache)) {
                 handler.obtainMessage(MESSAGE_SUCCEEDED).sendToTarget();
             } else {
                 handler.sendTextMessage(MESSAGE_FAILED, R.string.err_watchlist_failed);
@@ -1269,7 +1274,8 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
 
         /** Remove this cache from the watchlist of the user */
         private void watchListRemove(final SimpleCancellableHandler handler) {
-            if (ConnectorFactory.getConnector(cache).removeFromWatchlist(cache)) {
+            final WatchListCapability connector = (WatchListCapability) ConnectorFactory.getConnector(cache);
+            if (connector.removeFromWatchlist(cache)) {
                 handler.obtainMessage(MESSAGE_SUCCEEDED).sendToTarget();
             } else {
                 handler.sendTextMessage(MESSAGE_FAILED, R.string.err_watchlist_failed);
@@ -1482,7 +1488,8 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
                 }
             });
             final Button personalNoteUpload = ButterKnife.findById(view, R.id.upload_personalnote);
-            if (ConnectorFactory.getConnector(cache).supportsPersonalNote()) {
+            final PersonalNoteCapability connector = ConnectorFactory.getConnectorAs(cache, PersonalNoteCapability.class);
+            if (connector != null && connector.canAddPersonalNote(cache)) {
                 personalNoteUpload.setVisibility(View.VISIBLE);
                 personalNoteUpload.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -1561,8 +1568,8 @@ public class CacheDetailActivity extends AbstractViewPagerActivity<CacheDetailAc
             myHandler.unsubscribeIfCancelled(AndroidRxUtils.networkScheduler.createWorker().schedule(new Action0() {
                 @Override
                 public void call() {
-                    final IConnector con = ConnectorFactory.getConnector(cache);
-                    final boolean success = con.uploadPersonalNote(cache);
+                    final PersonalNoteCapability connector = (PersonalNoteCapability) ConnectorFactory.getConnector(cache);
+                    final boolean success = connector.uploadPersonalNote(cache);
                     final Message msg = Message.obtain();
                     final Bundle bundle = new Bundle();
                     bundle.putString(SimpleCancellableHandler.MESSAGE_TEXT,

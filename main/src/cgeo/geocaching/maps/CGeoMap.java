@@ -1,58 +1,5 @@
 package cgeo.geocaching.maps;
 
-import cgeo.geocaching.CacheListActivity;
-import cgeo.geocaching.CachePopup;
-import cgeo.geocaching.CompassActivity;
-import cgeo.geocaching.Intents;
-import cgeo.geocaching.R;
-import cgeo.geocaching.SearchResult;
-import cgeo.geocaching.WaypointPopup;
-import cgeo.geocaching.activity.ActivityMixin;
-import cgeo.geocaching.connector.ConnectorFactory;
-import cgeo.geocaching.connector.gc.GCLogin;
-import cgeo.geocaching.connector.gc.GCMap;
-import cgeo.geocaching.connector.gc.MapTokens;
-import cgeo.geocaching.connector.gc.Tile;
-import cgeo.geocaching.enumerations.CacheType;
-import cgeo.geocaching.enumerations.CoordinatesType;
-import cgeo.geocaching.enumerations.LoadFlags;
-import cgeo.geocaching.enumerations.LoadFlags.RemoveFlag;
-import cgeo.geocaching.enumerations.WaypointType;
-import cgeo.geocaching.list.StoredList;
-import cgeo.geocaching.location.Geopoint;
-import cgeo.geocaching.location.Viewport;
-import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
-import cgeo.geocaching.maps.google.v2.GoogleMapProvider;
-import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
-import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
-import cgeo.geocaching.maps.interfaces.GeneralOverlay;
-import cgeo.geocaching.maps.interfaces.GeoPointImpl;
-import cgeo.geocaching.maps.interfaces.MapActivityImpl;
-import cgeo.geocaching.maps.interfaces.MapControllerImpl;
-import cgeo.geocaching.maps.interfaces.MapItemFactory;
-import cgeo.geocaching.maps.interfaces.MapProvider;
-import cgeo.geocaching.maps.interfaces.MapReadyCallback;
-import cgeo.geocaching.maps.interfaces.MapSource;
-import cgeo.geocaching.maps.interfaces.MapViewImpl;
-import cgeo.geocaching.maps.interfaces.OnMapDragListener;
-import cgeo.geocaching.maps.interfaces.PositionAndHistory;
-import cgeo.geocaching.models.Geocache;
-import cgeo.geocaching.models.IWaypoint;
-import cgeo.geocaching.models.Waypoint;
-import cgeo.geocaching.network.AndroidBeam;
-import cgeo.geocaching.sensors.GeoData;
-import cgeo.geocaching.sensors.GeoDirHandler;
-import cgeo.geocaching.sensors.Sensors;
-import cgeo.geocaching.service.DownloadGeocacheService;
-import cgeo.geocaching.settings.Settings;
-import cgeo.geocaching.storage.DataStore;
-import cgeo.geocaching.utils.AndroidRxUtils;
-import cgeo.geocaching.utils.AngleUtils;
-import cgeo.geocaching.utils.Formatter;
-import cgeo.geocaching.utils.LeastRecentlyUsedSet;
-import cgeo.geocaching.utils.Log;
-import cgeo.geocaching.utils.MapUtils;
-
 import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
@@ -86,6 +33,9 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.ViewSwitcher.ViewFactory;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -101,8 +51,56 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import butterknife.ButterKnife;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import cgeo.geocaching.CacheListActivity;
+import cgeo.geocaching.CachePopup;
+import cgeo.geocaching.CompassActivity;
+import cgeo.geocaching.Intents;
+import cgeo.geocaching.R;
+import cgeo.geocaching.SearchResult;
+import cgeo.geocaching.WaypointPopup;
+import cgeo.geocaching.activity.ActivityMixin;
+import cgeo.geocaching.connector.ConnectorFactory;
+import cgeo.geocaching.connector.gc.GCLogin;
+import cgeo.geocaching.connector.gc.MapTokens;
+import cgeo.geocaching.connector.gc.Tile;
+import cgeo.geocaching.enumerations.CacheType;
+import cgeo.geocaching.enumerations.CoordinatesType;
+import cgeo.geocaching.enumerations.LoadFlags;
+import cgeo.geocaching.enumerations.LoadFlags.RemoveFlag;
+import cgeo.geocaching.enumerations.WaypointType;
+import cgeo.geocaching.list.StoredList;
+import cgeo.geocaching.location.Geopoint;
+import cgeo.geocaching.location.Viewport;
+import cgeo.geocaching.maps.google.v2.GoogleMapProvider;
+import cgeo.geocaching.maps.interfaces.CachesOverlayItemImpl;
+import cgeo.geocaching.maps.interfaces.GeneralOverlay;
+import cgeo.geocaching.maps.interfaces.GeoPointImpl;
+import cgeo.geocaching.maps.interfaces.MapActivityImpl;
+import cgeo.geocaching.maps.interfaces.MapControllerImpl;
+import cgeo.geocaching.maps.interfaces.MapItemFactory;
+import cgeo.geocaching.maps.interfaces.MapProvider;
+import cgeo.geocaching.maps.interfaces.MapReadyCallback;
+import cgeo.geocaching.maps.interfaces.MapSource;
+import cgeo.geocaching.maps.interfaces.MapViewImpl;
+import cgeo.geocaching.maps.interfaces.OnCacheTapListener;
+import cgeo.geocaching.maps.interfaces.OnMapDragListener;
+import cgeo.geocaching.maps.interfaces.PositionAndHistory;
+import cgeo.geocaching.models.Geocache;
+import cgeo.geocaching.models.IWaypoint;
+import cgeo.geocaching.models.Waypoint;
+import cgeo.geocaching.network.AndroidBeam;
+import cgeo.geocaching.sensors.GeoData;
+import cgeo.geocaching.sensors.GeoDirHandler;
+import cgeo.geocaching.sensors.Sensors;
+import cgeo.geocaching.service.DownloadGeocacheService;
+import cgeo.geocaching.settings.Settings;
+import cgeo.geocaching.storage.DataStore;
+import cgeo.geocaching.utils.AndroidRxUtils;
+import cgeo.geocaching.utils.AngleUtils;
+import cgeo.geocaching.utils.Formatter;
+import cgeo.geocaching.utils.LeastRecentlyUsedSet;
+import cgeo.geocaching.utils.Log;
+import cgeo.geocaching.utils.MapUtils;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
@@ -121,18 +119,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
      */
     private Subscription resumeSubscription = Subscriptions.empty();
 
-    /** Controls the behavior of the map */
-    public enum MapMode {
-        /** Live Map */
-        LIVE,
-        /** Map around some coordinates */
-        COORDS,
-        /** Map with a single cache (no reload on move) */
-        SINGLE,
-        /** Map with a list of caches (no reload on move) */
-        LIST
-    }
-
     /** Handler Messages */
     private static final int HIDE_PROGRESS = 0;
     private static final int SHOW_PROGRESS = 1;
@@ -148,18 +134,12 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private Resources res;
     private Activity activity;
     private MapItemFactory mapItemFactory;
-    private String mapTitle;
     private final LeastRecentlyUsedSet<Geocache> caches = new LeastRecentlyUsedSet<>(MAX_CACHES + DataStore.getAllCachesCount());
     private MapViewImpl<CachesOverlayItemImpl> mapView;
     private PositionAndHistory overlayPositionAndScale;
 
 
     private final GeoDirHandler geoDirUpdate = new UpdateLoc(this);
-    private SearchResult searchIntent = null;
-    private String geocodeIntent = null;
-    private Geopoint coordsIntent = null;
-    private WaypointType waypointTypeIntent = null;
-    private int[] mapStateIntent = null;
     // status data
     /** Last search result used for displaying header */
     private SearchResult lastSearchResult = null;
@@ -181,10 +161,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
     // views
     private CheckBox myLocSwitch = null;
-    /** Controls the map behavior */
-    private MapMode mapMode = null;
-    /** Live mode enabled for map. **/
-    private boolean isLiveEnabled;
     // other things
     private boolean markersInvalidated = false; // previous state for loadTimer
     private boolean centered = false; // if map is already centered
@@ -215,6 +191,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private static final ThreadPoolExecutor downloadExecutor = new ThreadPoolExecutor(1, 1, 60, TimeUnit.SECONDS, downloadQueue, new ThreadPoolExecutor.DiscardOldestPolicy());
     private static final BlockingQueue<Runnable> loadQueue = new ArrayBlockingQueue<>(1);
     private static final ThreadPoolExecutor loadExecutor = new ThreadPoolExecutor(1, 1, 60, TimeUnit.SECONDS, loadQueue, new ThreadPoolExecutor.DiscardOldestPolicy());
+    private MapOptions mapOptions;
     // handlers
     /** Updates the titles */
 
@@ -237,8 +214,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                 case UPDATE_TITLE:
                     map.setTitle();
                     map.setSubtitle();
-
                     break;
+
                 case INVALIDATE_MAP:
                     map.mapView.repaintRequired(null);
                     break;
@@ -258,31 +235,31 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         final TextView titleview = ButterKnife.findById(activity, R.id.actionbar_title);
         if (titleview != null) {
             titleview.setText(title);
-
         }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             setTitleIceCreamSandwich(title);
         }
     }
 
     private String calculateTitle() {
-        if (isLiveEnabled) {
+        if (mapOptions.isLiveEnabled) {
             return res.getString(R.string.map_live);
         }
-        if (mapMode == MapMode.SINGLE) {
+        if (mapOptions.mapMode == MapMode.SINGLE) {
             final Geocache cache = getSingleModeCache();
             if (cache != null) {
                 return cache.getName();
             }
         }
-        return StringUtils.defaultIfEmpty(mapTitle, res.getString(R.string.map_map));
+        return StringUtils.defaultIfEmpty(mapOptions.title, res.getString(R.string.map_map));
     }
 
     @Nullable
     private Geocache getSingleModeCache() {
         // use a copy of the caches list to avoid concurrent modification
         for (final Geocache geocache : caches.getAsList()) {
-            if (geocache.getGeocode().equals(geocodeIntent)) {
+            if (geocache.getGeocode().equals(mapOptions.geocode)) {
                 return geocache;
             }
         }
@@ -308,7 +285,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     private String calculateSubtitle() {
         // count caches in the sub title
         countVisibleCaches();
-        if (!isLiveEnabled && mapMode == MapMode.SINGLE) {
+        if (!mapOptions.isLiveEnabled && mapOptions.mapMode == MapMode.SINGLE) {
             final Geocache cache = getSingleModeCache();
             if (cache != null) {
                 return Formatter.formatMapSubtitle(cache);
@@ -364,13 +341,11 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         public void handleMessage(final Message msg) {
             final int what = msg.what;
 
-            if (what == HIDE_PROGRESS) {
-                if (--counter == 0) {
-                    showProgress(false);
-                }
-            } else if (what == SHOW_PROGRESS) {
+            if (what == SHOW_PROGRESS) {
                 showProgress(true);
                 counter++;
+            } else if (what == HIDE_PROGRESS && --counter == 0) {
+                showProgress(false);
             }
         }
         private void showProgress(final boolean show) {
@@ -381,12 +356,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
             final ProgressBar progress = ButterKnife.findById(map.activity, R.id.actionbar_progress);
             if (progress != null) {
-                if (show) {
-                    progress.setVisibility(View.VISIBLE);
-                } else {
-                    progress.setVisibility(View.GONE);
-
-                }
+                final int visibility = show ? View.VISIBLE : View.GONE;
+                progress.setVisibility(visibility);
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
                 map.activity.setProgressBarIndeterminateVisibility(show);
@@ -413,8 +384,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     public void onSaveInstanceState(final Bundle outState) {
         mapView.onSaveInstanceState(outState);
         outState.putInt(BUNDLE_MAP_SOURCE, currentSourceId);
-        outState.putIntArray(BUNDLE_MAP_STATE, currentMapState());
-        outState.putBoolean(BUNDLE_LIVE_ENABLED, isLiveEnabled);
+        outState.putParcelable(BUNDLE_MAP_STATE, currentMapState());
+        outState.putBoolean(BUNDLE_LIVE_ENABLED, mapOptions.isLiveEnabled);
         outState.putParcelableArrayList(BUNDLE_TRAIL_HISTORY, overlayPositionAndScale == null ? new ArrayList<Parcelable>() : overlayPositionAndScale.getHistory());
     }
 
@@ -425,11 +396,11 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
     protected Geopoint getIntentCoords()
     {
-        if (coordsIntent != null) {
-            return coordsIntent;
+        if (mapOptions.coords != null) {
+            return mapOptions.coords;
         } else
-        if (geocodeIntent != null) {
-            Viewport bounds = DataStore.getBounds(geocodeIntent);
+        if (mapOptions.geocode != null) {
+            Viewport bounds = DataStore.getBounds(mapOptions.geocode);
             if (bounds != null) {
                 return bounds.center;
             }
@@ -458,19 +429,19 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
         mapView.repaintRequired(null);
 
-        setZoom(Settings.getMapZoom(mapMode));
+        setZoom(Settings.getMapZoom(mapOptions.mapMode));
         mapView.getMapController().setCenter(Settings.getMapCenter());
 
-        if (mapStateIntent == null) {
-            followMyLocation = followMyLocation && (mapMode == MapMode.LIVE);
+        if (mapOptions.mapState == null) {
+            followMyLocation = followMyLocation && (mapOptions.mapMode == MapMode.LIVE);
         } else {
-            followMyLocation = mapStateIntent[3] == 1;
-            if ((mapView.getCircles() ? 1 : 0) != mapStateIntent[4]) {
+            followMyLocation = mapOptions.mapState.followsMyLocation();
+            if (mapView.getCircles() != mapOptions.mapState.showsCircles()) {
                 mapView.switchCircles();
             }
         }
-        if (geocodeIntent != null || searchIntent != null || coordsIntent != null || mapStateIntent != null) {
-            centerMap(geocodeIntent, searchIntent, coordsIntent, mapStateIntent);
+        if (mapOptions.geocode != null || mapOptions.searchResult != null || mapOptions.coords != null || mapOptions.mapState != null) {
+            centerMap(mapOptions.geocode, mapOptions.searchResult, mapOptions.coords, mapOptions.mapState);
         }
     }
 
@@ -487,30 +458,15 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
         // Get parameters from the intent
         final Bundle extras = activity.getIntent().getExtras();
-        if (extras != null) {
-            mapMode = (MapMode) extras.get(Intents.EXTRA_MAP_MODE);
-            isLiveEnabled = extras.getBoolean(Intents.EXTRA_LIVE_ENABLED, false);
-            searchIntent = extras.getParcelable(Intents.EXTRA_SEARCH);
-            geocodeIntent = extras.getString(Intents.EXTRA_GEOCODE);
-            coordsIntent = extras.getParcelable(Intents.EXTRA_COORDS);
-            waypointTypeIntent = WaypointType.findById(extras.getString(Intents.EXTRA_WPTTYPE));
-            mapStateIntent = extras.getIntArray(Intents.EXTRA_MAPSTATE);
-            mapTitle = extras.getString(Intents.EXTRA_TITLE);
-        } else {
-            mapMode = MapMode.LIVE;
-            isLiveEnabled = Settings.isLiveMap();
-        }
-        if (StringUtils.isBlank(mapTitle)) {
-            mapTitle = res.getString(R.string.map_map);
-        }
+        mapOptions = new MapOptions(activity, extras);
 
         final ArrayList<Location> trailHistory;
 
         // Get fresh map information from the bundle if any
         if (savedInstanceState != null) {
             currentSourceId = savedInstanceState.getInt(BUNDLE_MAP_SOURCE, Settings.getMapSource().getNumericalId());
-            mapStateIntent = savedInstanceState.getIntArray(BUNDLE_MAP_STATE);
-            isLiveEnabled = savedInstanceState.getBoolean(BUNDLE_LIVE_ENABLED, false);
+            mapOptions.mapState = savedInstanceState.getParcelable(BUNDLE_MAP_STATE);
+            mapOptions.isLiveEnabled = savedInstanceState.getBoolean(BUNDLE_LIVE_ENABLED, false);
             trailHistory = savedInstanceState.getParcelableArrayList(BUNDLE_TRAIL_HISTORY);
         } else {
             currentSourceId = Settings.getMapSource().getNumericalId();
@@ -601,7 +557,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
      *
      */
     private void setZoom(final int zoom) {
-        mapView.getMapController().setZoom(isLiveEnabled ? Math.max(zoom, MIN_LIVEMAP_ZOOM) : zoom);
+        mapView.getMapController().setZoom(mapOptions.isLiveEnabled ? Math.max(zoom, MIN_LIVEMAP_ZOOM) : zoom);
     }
 
     private void prepareFilterBar() {
@@ -747,12 +703,9 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
         try {
             final MenuItem itemMapLive = menu.findItem(R.id.menu_map_live);
-            if (isLiveEnabled) {
-                itemMapLive.setTitle(res.getString(R.string.map_live_disable));
-            } else {
-                itemMapLive.setTitle(res.getString(R.string.map_live_enable));
-            }
-            itemMapLive.setVisible(coordsIntent == null);
+            final int titleResource = mapOptions.isLiveEnabled ? R.string.map_live_disable : R.string.map_live_enable;
+            itemMapLive.setTitle(res.getString(titleResource));
+            itemMapLive.setVisible(mapOptions.coords == null);
 
 
             final Set<String> geocodesInViewport = getGeocodesForCachesInViewport();
@@ -768,7 +721,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
             menu.findItem(R.id.menu_as_list).setVisible(!isLoading() && caches.size() > 1);
 
-            menu.findItem(R.id.submenu_strategy).setVisible(isLiveEnabled);
+            menu.findItem(R.id.submenu_strategy).setVisible(mapOptions.isLiveEnabled);
 
             switch (Settings.getLiveMapStrategy()) {
                 case FASTEST:
@@ -783,8 +736,8 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                 default: // DETAILED
                     menu.findItem(R.id.menu_strategy_detailed).setChecked(true);
             }
-            menu.findItem(R.id.menu_hint).setVisible(mapMode == MapMode.SINGLE);
-            menu.findItem(R.id.menu_compass).setVisible(mapMode == MapMode.SINGLE);
+            menu.findItem(R.id.menu_hint).setVisible(mapOptions.mapMode == MapMode.SINGLE);
+            menu.findItem(R.id.menu_compass).setVisible(mapOptions.mapMode == MapMode.SINGLE);
         } catch (final RuntimeException e) {
             Log.e("CGeoMap.onPrepareOptionsMenu", e);
         }
@@ -810,16 +763,16 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                 ActivityMixin.invalidateOptionsMenu(activity);
                 return true;
             case R.id.menu_map_live:
-                isLiveEnabled = !isLiveEnabled;
-                if (mapMode == MapMode.LIVE) {
-                    Settings.setLiveMap(isLiveEnabled);
+                mapOptions.isLiveEnabled = !mapOptions.isLiveEnabled;
+                if (mapOptions.mapMode == MapMode.LIVE) {
+                    Settings.setLiveMap(mapOptions.isLiveEnabled);
                 }
                 markersInvalidated = true;
                 lastSearchResult = null;
-                searchIntent = null;
+                mapOptions.searchResult = null;
                 ActivityMixin.invalidateOptionsMenu(activity);
-                if (mapMode != MapMode.SINGLE) {
-                    mapTitle = StringUtils.EMPTY;
+                if (mapOptions.mapMode != MapMode.SINGLE) {
+                    mapOptions.title = StringUtils.EMPTY;
                 }
                 updateMapTitle();
                 return true;
@@ -841,15 +794,14 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
                     if (Settings.getChooseList()) {
                         // let user select list to store cache in
-                        new StoredList.UserInterface(activity).promptForListSelection(R.string.list_title,
-                                new Action1<Integer>() {
-                                    @Override
-                                    public void call(final Integer selectedListId) {
-                                        storeCaches(geocodes, selectedListId);
-                                    }
-                                }, true, StoredList.TEMPORARY_LIST.id);
+                        new StoredList.UserInterface(activity).promptForMultiListSelection(R.string.list_title, new Action1<Set<Integer>>() {
+                            @Override
+                            public void call(final Set<Integer> selectedListIds) {
+                                storeCaches(geocodes, selectedListIds);
+                            }
+                        }, true, Collections.singleton(StoredList.TEMPORARY_LIST.id));
                     } else {
-                        storeCaches(geocodes, StoredList.STANDARD_LIST_ID);
+                        storeCaches(geocodes, Collections.singleton(StoredList.STANDARD_LIST_ID));
                     }
                 }
                 return true;
@@ -1035,11 +987,11 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         if (restartRequired) {
             mapRestart();
         } else if (mapView != null) {  // changeMapSource can be called by onCreate()
-            mapStateIntent = currentMapState();
+            mapOptions.mapState = currentMapState();
             mapView.setMapSource();
             // re-center the map
             centered = false;
-            centerMap(geocodeIntent, searchIntent, coordsIntent, mapStateIntent);
+            centerMap(mapOptions.geocode, mapOptions.searchResult, mapOptions.coords, mapOptions.mapState);
             // re-build menues
             ActivityMixin.invalidateOptionsMenu(activity);
         }
@@ -1051,29 +1003,9 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
      * Restart the current activity with the default map source.
      */
     private void mapRestart() {
-        // prepare information to restart a similar view
-        final Intent mapIntent = new Intent(activity, Settings.getMapProvider().getMapClass());
-
-        mapIntent.putExtra(Intents.EXTRA_SEARCH, searchIntent);
-        mapIntent.putExtra(Intents.EXTRA_GEOCODE, geocodeIntent);
-        if (coordsIntent != null) {
-            mapIntent.putExtra(Intents.EXTRA_COORDS, coordsIntent);
-        }
-        mapIntent.putExtra(Intents.EXTRA_WPTTYPE, waypointTypeIntent != null ? waypointTypeIntent.id : null);
-        mapIntent.putExtra(Intents.EXTRA_TITLE, mapTitle);
-        mapIntent.putExtra(Intents.EXTRA_MAP_MODE, mapMode);
-        mapIntent.putExtra(Intents.EXTRA_LIVE_ENABLED, isLiveEnabled);
-
-        final int[] mapState = currentMapState();
-        if (mapState != null) {
-            mapIntent.putExtra(Intents.EXTRA_MAPSTATE, mapState);
-        }
-
-        // close old map
+        mapOptions.mapState = currentMapState();
         activity.finish();
-
-        // start the new map
-        activity.startActivity(mapIntent);
+        mapOptions.startIntent(activity, Settings.getMapProvider().getMapClass());
     }
 
     /**
@@ -1081,22 +1013,16 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
      *
      * @return the current map state as an array of int, or null if no map state is available
      */
-    private int[] currentMapState() {
+    private MapState currentMapState() {
         if (mapView == null) {
             return null;
         }
         final GeoPointImpl mapCenter = mapView.getMapViewCenter();
-        return new int[] {
-                mapCenter == null ? 0 : mapCenter.getLatitudeE6(),
-                mapCenter == null ? 0 : mapCenter.getLongitudeE6(),
-                mapView.getMapZoomLevel(),
-                followMyLocation ? 1 : 0,
-                mapView.getCircles() ? 1 : 0
-        };
+        return new MapState(mapCenter.getCoords(), mapView.getMapZoomLevel(), followMyLocation, mapView.getCircles(), null, null, mapOptions.isLiveEnabled);
     }
 
     private void savePrefs() {
-        Settings.setMapZoom(mapMode, mapView.getMapZoomLevel());
+        Settings.setMapZoom(mapOptions.mapMode, mapView.getMapZoomLevel());
         Settings.setMapCenter(mapView.getMapViewCenter());
     }
 
@@ -1216,9 +1142,9 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
      */
 
     private Subscription startTimer() {
-        if (coordsIntent != null) {
+        if (mapOptions.coords != null) {
             // display just one point
-            displayPoint(coordsIntent);
+            displayPoint(mapOptions.coords);
             loadTimer = Subscriptions.empty();
         } else {
             loadTimer = Schedulers.newThread().createWorker().schedulePeriodically(new LoadTimerAction(this), 0, 250, TimeUnit.MILLISECONDS);
@@ -1252,7 +1178,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
                 // check if map moved or zoomed
                 //TODO Portree Use Rectangle inside with bigger search window. That will stop reloading on every move
-                final boolean moved = map.markersInvalidated || (map.isLiveEnabled && !map.downloaded) || previousViewport == null || zoomNow != previousZoom ||
+                final boolean moved = map.markersInvalidated || (map.mapOptions.isLiveEnabled && !map.downloaded) || previousViewport == null || zoomNow != previousZoom ||
                         (mapMoved(previousViewport, viewportNow) && (map.cachesCnt <= 0 || CollectionUtils.isEmpty(map.caches) || !previousViewport.includes(viewportNow)));
 
                 // update title on any change
@@ -1312,17 +1238,18 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
             loadThreadRun = System.currentTimeMillis();
 
             final SearchResult searchResult;
+            final MapMode mapMode = mapOptions.mapMode;
             if (mapMode == MapMode.LIVE) {
-                searchResult = isLiveEnabled ? new SearchResult() : new SearchResult(DataStore.loadStoredInViewport(mapView.getViewport(), Settings.getCacheType()));
+                searchResult = mapOptions.isLiveEnabled ? new SearchResult() : new SearchResult(DataStore.loadStoredInViewport(mapView.getViewport(), Settings.getCacheType()));
             } else {
                 // map started from another activity
-                searchResult = searchIntent != null ? new SearchResult(searchIntent) : new SearchResult();
-                if (geocodeIntent != null) {
-                    searchResult.addGeocode(geocodeIntent);
+                searchResult = mapOptions.searchResult != null ? new SearchResult(mapOptions.searchResult) : new SearchResult();
+                if (mapOptions.geocode != null) {
+                    searchResult.addGeocode(mapOptions.geocode);
                 }
             }
             // live mode search result
-            if (isLiveEnabled) {
+            if (mapOptions.isLiveEnabled) {
                 searchResult.addSearchResult(DataStore.loadCachedInViewport(mapView.getViewport(), Settings.getCacheType()));
             }
 
@@ -1341,11 +1268,10 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                 }
             }
             countVisibleCaches();
-            if (cachesCnt < Settings.getWayPointsThreshold() || geocodeIntent != null) {
-                // we don't want to see any stale waypoints
-                waypoints.clear();
-                if (isLiveEnabled || mapMode == MapMode.LIVE
-                        || mapMode == MapMode.COORDS) {
+            // we don't want to see any stale waypoints
+            waypoints.clear();
+            if (cachesCnt < Settings.getWayPointsThreshold() || mapOptions.geocode != null) {
+                if (mapOptions.isLiveEnabled || mapMode == MapMode.LIVE || mapMode == MapMode.COORDS) {
                     //All visible waypoints
                     final CacheType type = Settings.getCacheType();
                     final Set<Waypoint> waypointsInViewport = DataStore.loadWaypoints(mapView.getViewport(), excludeMine, excludeDisabled, type);
@@ -1356,15 +1282,12 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
                         waypoints.addAll(c.getWaypoints());
                     }
                 }
-            } else {
-                // we don't want to see any stale waypoints when above threshold
-                waypoints.clear();
             }
 
             //render
             displayExecutor.execute(new DisplayRunnable(this));
 
-            if (isLiveEnabled) {
+            if (mapOptions.isLiveEnabled) {
                 downloadExecutor.execute(new DownloadRunnable(this));
             }
             lastSearchResult = searchResult;
@@ -1375,7 +1298,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     }
 
     /**
-     * Worker thread downloading caches from the internet.
+     * Worker thread downloading caches from the Internet.
      * Started by {@link LoadRunnable}.
      */
 
@@ -1445,7 +1368,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
     private void doDisplayRun() {
         // don't add anything to mapView if just one point should be displayed
-        if (coordsIntent != null) return;
+        if (mapOptions.coords != null) return;
         try {
             showProgressHandler.sendEmptyMessage(SHOW_PROGRESS);
 
@@ -1457,26 +1380,21 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
             if (!cachesToDisplay.isEmpty()) {
                 // Only show waypoints for single view or setting
                 // when less than showWaypointsthreshold Caches shown
-                if (mapMode == MapMode.SINGLE || cachesCnt < Settings.getWayPointsThreshold()) {
+                if (mapOptions.mapMode == MapMode.SINGLE || cachesCnt < Settings.getWayPointsThreshold()) {
                     for (final Waypoint waypoint : waypointsToDisplay) {
-
-                        if (waypoint == null || waypoint.getCoords() == null) {
-                            continue;
+                        if (waypoint != null && waypoint.getCoords() != null) {
+                            itemsToDisplay.add(getWaypointItem(waypoint));
                         }
-
-                        itemsToDisplay.add(getWaypointItem(waypoint));
                     }
                 }
                 for (final Geocache cache : cachesToDisplay) {
-
-                    if (cache == null || cache.getCoords() == null) {
-                        continue;
+                    if (cache != null && cache.getCoords() != null) {
+                        itemsToDisplay.add(getCacheItem(cache));
                     }
-                    itemsToDisplay.add(getCacheItem(cache));
                 }
             }
             // don't add other waypoints to overlayCaches if just one point should be displayed
-            if (coordsIntent == null) {
+            if (mapOptions.coords == null) {
                 mapView.updateItems(itemsToDisplay);
             }
             displayHandler.sendEmptyMessage(INVALIDATE_MAP);
@@ -1488,7 +1406,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     }
 
     private void displayPoint(final Geopoint coords) {
-        final Waypoint waypoint = new Waypoint("some place", waypointTypeIntent != null ? waypointTypeIntent : WaypointType.WAYPOINT, false);
+        final Waypoint waypoint = new Waypoint("some place", mapOptions.waypointType != null ? mapOptions.waypointType : WaypointType.WAYPOINT, false);
         waypoint.setCoords(coords);
 
         final CachesOverlayItemImpl item = getWaypointItem(waypoint);
@@ -1525,16 +1443,16 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     /**
      * store caches, invoked by "store offline" menu item
      *
-     * @param listId
-     *            the list to store the caches in
+     * @param listIds
+     *            the lists to store the caches in
      */
-    private void storeCaches(final Set<String> geocodes, final int listId) {
+    private void storeCaches(final Set<String> geocodes, Set<Integer> listIds) {
 
         // TODO add DataStore.addGeocacheListener(String geocode, GeocacheChangeListener{geocacheChanged(Geocache)} listener)?
 
         Intent intent = new Intent(activity, DownloadGeocacheService.class);
         intent.putExtra(DownloadGeocacheService.EXTRA_REQUEST,
-                new DownloadGeocacheService.DownloadRequest(geocodes, Collections.singleton(listId)));
+                new DownloadGeocacheService.DownloadRequest(geocodes, listIds));
         activity.startService(intent);
     }
 
@@ -1545,7 +1463,7 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
 
         final List<Geocache> removeList = new ArrayList<>();
         for (final Geocache cache : caches) {
-            if ((excludeMine && cache.isFound()) || (excludeMine && cache.isOwner()) || (excludeDisabled && cache.isDisabled()) || (excludeDisabled && cache.isArchived())) {
+            if ((excludeMine && (cache.isFound() || cache.isOwner())) || (excludeDisabled && (cache.isDisabled() || cache.isArchived()))) {
                 removeList.add(cache);
             }
         }
@@ -1579,20 +1497,20 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
     }
 
     // move map to view results of searchIntent
-    private void centerMap(final String geocodeCenter, final SearchResult searchCenter, final Geopoint coordsCenter, final int[] mapState) {
+    private void centerMap(final String geocodeCenter, final SearchResult searchCenter, final Geopoint coordsCenter, final MapState mapState) {
         final MapControllerImpl mapController = mapView.getMapController();
 
         if (!centered && mapState != null) {
             try {
-                mapController.setCenter(mapItemFactory.getGeoPointBase(new Geopoint(mapState[0] / 1.0e6, mapState[1] / 1.0e6)));
-                setZoom(mapState[2]);
+                mapController.setCenter(mapItemFactory.getGeoPointBase(mapState.getCenter()));
+                setZoom(mapState.getZoomLevel());
             } catch (final RuntimeException e) {
                 Log.e("centermap", e);
             }
 
             centered = true;
             alreadyCentered = true;
-        } else if (!centered && (geocodeCenter != null || searchIntent != null)) {
+        } else if (!centered && (geocodeCenter != null || mapOptions.searchResult != null)) {
             try {
                 Viewport viewport = null;
 
@@ -1698,49 +1616,6 @@ public class CGeoMap extends AbstractMap implements ViewFactory, OnCacheTapListe
         imageView.setScaleType(ScaleType.CENTER);
         imageView.setLayoutParams(new ImageSwitcher.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         return imageView;
-    }
-
-    private static Intent newIntent(final Context context) {
-        return new Intent(context, Settings.getMapProvider().getMapClass());
-    }
-
-    public static void startActivitySearch(final Activity fromActivity, final SearchResult search, final String title) {
-        final Intent mapIntent = newIntent(fromActivity);
-        mapIntent.putExtra(Intents.EXTRA_SEARCH, search);
-        mapIntent.putExtra(Intents.EXTRA_MAP_MODE, MapMode.LIST);
-        mapIntent.putExtra(Intents.EXTRA_LIVE_ENABLED, false);
-        if (StringUtils.isNotBlank(title)) {
-            mapIntent.putExtra(Intents.EXTRA_TITLE, title);
-        }
-        fromActivity.startActivity(mapIntent);
-    }
-
-    public static Intent getLiveMapIntent(final Activity fromActivity) {
-        return newIntent(fromActivity)
-                .putExtra(Intents.EXTRA_MAP_MODE, MapMode.LIVE)
-                .putExtra(Intents.EXTRA_LIVE_ENABLED, Settings.isLiveMap());
-    }
-
-    public static void startActivityCoords(final Activity fromActivity, final Geopoint coords, final WaypointType type, final String title) {
-        final Intent mapIntent = newIntent(fromActivity);
-        mapIntent.putExtra(Intents.EXTRA_MAP_MODE, MapMode.COORDS);
-        mapIntent.putExtra(Intents.EXTRA_LIVE_ENABLED, false);
-        mapIntent.putExtra(Intents.EXTRA_COORDS, coords);
-        if (type != null) {
-            mapIntent.putExtra(Intents.EXTRA_WPTTYPE, type.id);
-        }
-        if (StringUtils.isNotBlank(title)) {
-            mapIntent.putExtra(Intents.EXTRA_TITLE, title);
-        }
-        fromActivity.startActivity(mapIntent);
-    }
-
-    public static void startActivityGeoCode(final Activity fromActivity, final String geocode) {
-        final Intent mapIntent = newIntent(fromActivity);
-        mapIntent.putExtra(Intents.EXTRA_MAP_MODE, MapMode.SINGLE);
-        mapIntent.putExtra(Intents.EXTRA_LIVE_ENABLED, false);
-        mapIntent.putExtra(Intents.EXTRA_GEOCODE, geocode);
-        fromActivity.startActivity(mapIntent);
     }
 
     public static void markCacheAsDirty(final String geocode) {

@@ -1,6 +1,7 @@
 package cgeo.geocaching.maps.google.v2;
 
 import cgeo.geocaching.location.Geopoint;
+import cgeo.geocaching.maps.CGeoMap;
 import cgeo.geocaching.maps.interfaces.MapViewImpl;
 import cgeo.geocaching.maps.interfaces.OverlayImpl;
 
@@ -11,11 +12,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class GoogleOverlay implements OverlayImpl {
 
+    private final GoogleMapView mapView;
     private GooglePositionAndHistory overlayBase = null;
     private final Lock lock = new ReentrantLock();
 
-    public GoogleOverlay(final GoogleMap googleMap, final Geopoint coords) {
-        overlayBase = new GooglePositionAndHistory(googleMap, coords);
+    public GoogleOverlay(final GoogleMap googleMap, GoogleMapView mapView) {
+        this.mapView = mapView;
+        overlayBase = new GooglePositionAndHistory(googleMap, mapView);
     }
 
 
@@ -35,7 +38,7 @@ public class GoogleOverlay implements OverlayImpl {
 
     @Override
     public MapViewImpl getMapViewImpl() {
-        throw new UnsupportedOperationException();
+        return mapView;
     }
 
 }

@@ -11,6 +11,7 @@ import cgeo.geocaching.connector.IConnector;
 import cgeo.geocaching.connector.ILoggingManager;
 import cgeo.geocaching.connector.capability.ISearchByCenter;
 import cgeo.geocaching.connector.capability.ISearchByGeocode;
+import cgeo.geocaching.connector.capability.WatchListCapability;
 import cgeo.geocaching.connector.gc.GCConnector;
 import cgeo.geocaching.connector.gc.GCConstants;
 import cgeo.geocaching.connector.gc.Tile;
@@ -41,14 +42,6 @@ import cgeo.geocaching.utils.LogTemplateProvider;
 import cgeo.geocaching.utils.LogTemplateProvider.LogContext;
 import cgeo.geocaching.utils.MatcherWrapper;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -57,6 +50,8 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.Html;
 
 import java.io.File;
@@ -76,6 +71,11 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Action0;
@@ -164,7 +164,7 @@ public class Geocache implements IWaypoint {
     private final EnumSet<StorageLocation> storageLocation = EnumSet.of(StorageLocation.HEAP);
     private boolean finalDefined = false;
     private boolean logPasswordRequired = false;
-    private LogEntry offlineLogs = null;
+    private LogEntry offlineLog = null;
 
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
@@ -453,7 +453,7 @@ public class Geocache implements IWaypoint {
             DataStore.saveVisitDate(geocode);
             logOffline = Boolean.TRUE;
 
-            offlineLogs = DataStore.loadLogOffline(geocode);
+            offlineLog = DataStore.loadLogOffline(geocode);
             notifyChange();
         } else {
             ActivityMixin.showToast(fromActivity, res.getString(R.string.err_log_post_failed));
@@ -468,10 +468,10 @@ public class Geocache implements IWaypoint {
      */
     @Nullable
     public LogEntry getOfflineLog() {
-        if (isLogOffline() && offlineLogs == null) {
-            offlineLogs = DataStore.loadLogOffline(geocode);
+        if (isLogOffline() && offlineLog == null) {
+            offlineLog = DataStore.loadLogOffline(geocode);
         }
-        return offlineLogs;
+        return offlineLog;
     }
 
     /**
@@ -535,7 +535,8 @@ public class Geocache implements IWaypoint {
     }
 
     public boolean supportsWatchList() {
-        return getConnector().supportsWatchList();
+        final IConnector connector = getConnector();
+        return (connector instanceof WatchListCapability) && ((WatchListCapability) connector).canAddToWatchList(this);
     }
 
     public boolean supportsFavoritePoints() {

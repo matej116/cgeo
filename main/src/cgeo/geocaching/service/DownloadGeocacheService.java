@@ -18,8 +18,10 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Set;
 
+import cgeo.geocaching.CacheDetailActivity;
 import cgeo.geocaching.Intents;
 import cgeo.geocaching.R;
+import cgeo.geocaching.maps.MapActivity;
 import cgeo.geocaching.models.Geocache;
 import cgeo.geocaching.storage.DataStore;
 import cgeo.geocaching.utils.CancellableHandler;
@@ -58,22 +60,14 @@ public class DownloadGeocacheService extends Service {
         return mNotifyManager;
     }
 
-    private NotificationCompat.Builder createNotificationBuilder(int id) {
+    private NotificationCompat.Builder createNotificationBuilder() {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-        builder.setSmallIcon(R.drawable.cgeo);
+        builder.setSmallIcon(R.drawable.cgeo_notification);
         builder.setCategory(NotificationCompat.CATEGORY_PROGRESS);
         CharSequence title = getResources().getText(R.string.cache_dialog_offline_save_message);
         builder.setContentTitle(title);
         builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         builder.setTicker(title);
-        PendingIntent cancelIntent = createCancelPendingIntent(id);
-        builder.addAction(
-                R.drawable.ic_menu_remove,
-                getResources().getText(R.string.waypoint_cancel_edit), // TODO add new resource copied from waypoint_cancel_edit
-                cancelIntent
-        );
-        builder.setDeleteIntent(cancelIntent); // probably useless, it is ongoing (= not deletable) notification
-        builder.setContentIntent(cancelIntent); // what would user expects on click?
         return builder;
     }
 
@@ -90,11 +84,37 @@ public class DownloadGeocacheService extends Service {
         );
     }
 
+    private PendingIntent createMapPendingIntent() {
+        return PendingIntent.getActivity(this, 0, new Intent(this, MapActivity.class), PendingIntent.FLAG_ONE_SHOT);
+    }
+
+    private PendingIntent createGeocachePendingIntent(String geocode) {
+        final Intent intent = new Intent(this, CacheDetailActivity.class);
+        intent.putExtra(Intents.EXTRA_GEOCODE, geocode);
+        return PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
+    }
+
+
     public void addRequest(DownloadRequest req) {
+        if (req.geocodes.isEmpty()) {
+            return;
+        }
+
         int id = idGenerator.next();
         NotificationUpdater updater = new NotificationUpdater(getNotifyManager(), id);
         notifications.put(id, updater);
-        downloadCaches(createNotificationBuilder(id), req, updater.getHandler())
+
+        NotificationCompat.Builder builder = createNotificationBuilder();
+        PendingIntent cancelIntent = createCancelPendingIntent(id);
+        builder.addAction(
+                R.drawable.ic_menu_remove,
+                getResources().getText(R.string.waypoint_cancel_edit), // TODO add new resource copied from waypoint_cancel_edit
+                cancelIntent
+        );
+        builder.setDeleteIntent(cancelIntent);
+        builder.setContentIntent(req.geocodes.size() > 1 ? createMapPendingIntent() : createGeocachePendingIntent(req.geocodes.iterator().next()));
+
+        downloadCaches(builder, req, updater.getHandler())
                 .subscribe(updater);
     }
 
@@ -109,6 +129,9 @@ public class DownloadGeocacheService extends Service {
             if (updater != null) {
                 updater.cancel();
                 notifications.delete(notificationToCancel);
+                if (notifications.size() == 0) {
+                    stopForeground(false);
+                }
             } else {
                 Log.i("DOWNLOAD: notificationUpdater not found");
             }
@@ -180,6 +203,7 @@ public class DownloadGeocacheService extends Service {
                         if (done == total) {
                             builder.setContentText(res.getText(R.string.cache_offline_stored));
                             builder.setOngoing(false);
+                            builder.setProgress(0, 0, false);
                             builder.mActions.clear(); // TODO do not touch @hide property
                             builder.setCategory(NotificationCompat.CATEGORY_EVENT);
                             builder.setWhen(System.currentTimeMillis());
@@ -217,11 +241,38 @@ public class DownloadGeocacheService extends Service {
     }
 
 
-    private static class NotificationUpdater implements Observer<Notification> {
+    private boolean isInForeground = false;
+    private void ensureForeground(int id, Notification notification) {
+        if (!isInForeground) {
+            isInForeground = true;
+            startForeground(id, notification);
+        }
+    }
+    private void updateForeground(int dismissedNotificationId) {
+        NotificationUpdater updater = null;
+        int newId = 0;
+        for (int i = 0; i< notifications.size(); i++) {
+            newId = notifications.keyAt(i);
+            if (notifications.keyAt(i) != dismissedNotificationId) {
+                updater = notifications.valueAt(i);
+                break;
+            }
+        }
+        if (updater != null) {
+            startForeground(newId, updater.getLastNotification());
+            isInForeground = true;
+        } else {
+            stopForeground(false);
+            isInForeground = false;
+        }
+    }
+
+    private class NotificationUpdater implements Observer<Notification> {
 
         private NotificationManager notifyManager;
         final int id;
         private final CancellableHandler handler;
+        private Notification lastNotification;
 
         NotificationUpdater(NotificationManager notificationManager, int id) {
             this.notifyManager = notificationManager;
@@ -236,7 +287,7 @@ public class DownloadGeocacheService extends Service {
 
         @Override
         public void onCompleted() {
-            // no need to do anything
+            updateForeground(id);
         }
 
         @Override
@@ -248,19 +299,28 @@ public class DownloadGeocacheService extends Service {
         @Override
         public void onNext(Notification notification) {
             notifyManager.notify(id, notification);
+            lastNotification = notification;
+            ensureForeground(id, notification);
         }
 
         public void cancel() {
             handler.cancel(); // set handler as cancelled, storing cache will be canceled
+            updateForeground(id);
             notifyManager.cancel(id); // and remove notification from status bar
         }
 
         public CancellableHandler getHandler() {
             return handler;
         }
+
+        Notification getLastNotification() {
+            return lastNotification;
+        }
     }
 
-    private class IdGenerator {
+
+
+    private static class IdGenerator {
         private int id = 0;
 
         int next() {

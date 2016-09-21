@@ -10,9 +10,11 @@ import cgeo.geocaching.connector.capability.ISearchByFinder;
 import cgeo.geocaching.connector.capability.ISearchByKeyword;
 import cgeo.geocaching.connector.capability.ISearchByOwner;
 import cgeo.geocaching.connector.capability.ISearchByViewPort;
+import cgeo.geocaching.connector.capability.IgnoreCapability;
+import cgeo.geocaching.connector.capability.PersonalNoteCapability;
+import cgeo.geocaching.connector.capability.WatchListCapability;
 import cgeo.geocaching.connector.gc.MapTokens;
 import cgeo.geocaching.connector.oc.UserInfo.UserInfoStatus;
-import cgeo.geocaching.loaders.RecaptchaReceiver;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.location.Viewport;
 import cgeo.geocaching.models.Geocache;
@@ -32,7 +34,7 @@ import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class OCApiLiveConnector extends OCApiConnector implements ISearchByCenter, ISearchByViewPort, ILogin, ISearchByKeyword, ISearchByOwner, ISearchByFinder {
+public class OCApiLiveConnector extends OCApiConnector implements ISearchByCenter, ISearchByViewPort, ILogin, ISearchByKeyword, ISearchByOwner, ISearchByFinder, WatchListCapability, IgnoreCapability, PersonalNoteCapability {
 
     private final String cS;
     private final int isActivePrefKeyId;
@@ -65,17 +67,17 @@ public class OCApiLiveConnector extends OCApiConnector implements ISearchByCente
     }
 
     @Override
-    public SearchResult searchByCenter(@NonNull final Geopoint center, @NonNull final RecaptchaReceiver recaptchaReceiver) {
+    public SearchResult searchByCenter(@NonNull final Geopoint center) {
         return new SearchResult(OkapiClient.getCachesAround(center, this));
     }
 
     @Override
-    public SearchResult searchByOwner(@NonNull final String username, @NonNull final RecaptchaReceiver recaptchaReceiver) {
+    public SearchResult searchByOwner(@NonNull final String username) {
         return new SearchResult(OkapiClient.getCachesByOwner(username, this));
     }
 
     @Override
-    public SearchResult searchByFinder(@NonNull final String username, @NonNull final RecaptchaReceiver recaptchaReceiver) {
+    public SearchResult searchByFinder(@NonNull final String username) {
         return new SearchResult(OkapiClient.getCachesByFinder(username, this));
     }
 
@@ -104,7 +106,7 @@ public class OCApiLiveConnector extends OCApiConnector implements ISearchByCente
     }
 
     @Override
-    public boolean supportsWatchList() {
+    public boolean canAddToWatchList(@NonNull final Geocache cache) {
         return getApiSupport() == ApiSupport.current;
     }
 
@@ -186,7 +188,7 @@ public class OCApiLiveConnector extends OCApiConnector implements ISearchByCente
     }
 
     @Override
-    public SearchResult searchByKeyword(@NonNull final String name, @NonNull final RecaptchaReceiver recaptchaReceiver) {
+    public SearchResult searchByKeyword(@NonNull final String name) {
         return new SearchResult(OkapiClient.getCachesNamed(Sensors.getInstance().currentGeo().getCoords(), name, this));
     }
 
@@ -196,13 +198,27 @@ public class OCApiLiveConnector extends OCApiConnector implements ISearchByCente
     }
 
     @Override
-    public boolean supportsPersonalNote() {
+    public boolean canAddPersonalNote(@NonNull final Geocache cache) {
         return this.getApiSupport() == ApiSupport.current && isActive();
     }
 
     @Override
     public boolean uploadPersonalNote(@NonNull final Geocache cache) {
         return OkapiClient.uploadPersonalNotes(this, cache);
+    }
+
+    @Override
+    public boolean canIgnoreCache(final Geocache cache) {
+        return true;
+    }
+
+    @Override
+    public void ignoreCache(final Geocache cache) {
+        final boolean ignored = OkapiClient.setIgnored(cache, this);
+
+        if (ignored) {
+            DataStore.saveChangedCache(cache);
+        }
     }
 
 }

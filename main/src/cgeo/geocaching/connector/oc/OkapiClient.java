@@ -183,7 +183,7 @@ final class OkapiClient {
         final Parameters params = new Parameters("search_method", METHOD_SEARCH_NEAREST);
         final Map<String, String> valueMap = new LinkedHashMap<>();
         valueMap.put("center", centerString);
-        valueMap.put("limit", "20");
+        valueMap.put("limit", getCacheLimit());
         valueMap.put("radius", "200");
 
         return requestCaches(connector, params, valueMap, false);
@@ -222,11 +222,10 @@ final class OkapiClient {
             final String centerString = GeopointFormatter.format(GeopointFormatter.Format.LAT_DECDEGREE_RAW, center) + SEPARATOR + GeopointFormatter.format(GeopointFormatter.Format.LON_DECDEGREE_RAW, center);
             params = new Parameters("search_method", METHOD_SEARCH_NEAREST);
             valueMap.put("center", centerString);
-            valueMap.put("limit", "20");
         } else {
             params = new Parameters("search_method", METHOD_SEARCH_ALL);
-            valueMap.put("limit", "20");
         }
+        valueMap.put("limit", getCacheLimit());
 
         // full wildcard search, maybe we need to change this after some testing and evaluation
         valueMap.put("name", "*" + namePart + "*");
@@ -292,6 +291,15 @@ final class OkapiClient {
         cache.setOnWatchlist(watched);
 
         return true;
+    }
+
+    public static boolean setIgnored(@NonNull final Geocache cache, @NonNull final OCApiConnector connector) {
+        final Parameters params = new Parameters("cache_code", cache.getGeocode());
+        params.add("ignored", "true");
+
+        final ObjectNode data = request(connector, OkapiService.SERVICE_MARK_CACHE, params).data;
+
+        return data != null;
     }
 
     @NonNull
@@ -867,6 +875,10 @@ final class OkapiClient {
             valueMap.put("exclude_my_own", "true");
             valueMap.put("found_status", "notfound_only");
         }
+        // OKAPI returns ignored caches, we have to actively suppress them
+        if (connector.getSupportedAuthLevel() == OAuthLevel.Level3) {
+            valueMap.put("ignored_status", "notignored_only");
+        }
         if (Settings.getCacheType() != CacheType.ALL) {
             valueMap.put("type", getFilterFromType());
         }
@@ -1017,5 +1029,12 @@ final class OkapiClient {
         }
 
         return null;
+    }
+
+    /**
+     * Fetch more caches, if the GC connector is not active at all.
+     */
+    private static String getCacheLimit() {
+        return GCConnector.getInstance().isActive() ? "20" : "100";
     }
 }

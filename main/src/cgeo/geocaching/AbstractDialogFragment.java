@@ -66,6 +66,22 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
     public static final int RESULT_CODE_SET_TARGET = Activity.RESULT_FIRST_USER;
     public static final int REQUEST_CODE_TARGET_INFO = 1;
 
+    private final GeoDirHandler geoUpdate = new GeoDirHandler() {
+
+        @Override
+        public void updateGeoData(final GeoData geo) {
+            try {
+                if (cache != null && cache.getCoords() != null) {
+                    cacheDistance.setText(Units.getDistanceFromKilometers(geo.getCoords().distanceTo(cache.getCoords())));
+                    cacheDistance.bringToFront();
+                }
+                onUpdateGeoData(geo);
+            } catch (final RuntimeException e) {
+                Log.w("Failed to update location", e);
+            }
+        }
+    };
+
     @Override
     public void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -262,8 +278,7 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
         details.add(R.string.cache_geocode, cache.getGeocode());
         details.addCacheState(cache);
 
-        details.addDistance(cache, cacheDistance);
-        cacheDistance = details.getValueView();
+        cacheDistance = details.addDistance(cache, cacheDistance);
 
         details.addDifficulty(cache);
         details.addTerrain(cache);
@@ -317,22 +332,6 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
     public final void showToast(final String text) {
         ActivityMixin.showToast(getActivity(), text);
     }
-
-    private final GeoDirHandler geoUpdate = new GeoDirHandler() {
-
-        @Override
-        public void updateGeoData(final GeoData geo) {
-            try {
-                if (cache != null && cache.getCoords() != null) {
-                    cacheDistance.setText(Units.getDistanceFromKilometers(geo.getCoords().distanceTo(cache.getCoords())));
-                    cacheDistance.bringToFront();
-                }
-                onUpdateGeoData(geo);
-            } catch (final RuntimeException e) {
-                Log.w("Failed to update location", e);
-            }
-        }
-    };
 
     /**
      * @param geo
@@ -432,6 +431,18 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
         public final Geopoint coords;
         public final String geocode;
 
+        public static final Parcelable.Creator<TargetInfo> CREATOR = new Parcelable.Creator<TargetInfo>() {
+            @Override
+            public TargetInfo createFromParcel(final Parcel in) {
+                return new TargetInfo(in);
+            }
+
+            @Override
+            public TargetInfo[] newArray(final int size) {
+                return new TargetInfo[size];
+            }
+        };
+
         TargetInfo(final Geopoint coords, final String geocode) {
             this.coords = coords;
             this.geocode = geocode;
@@ -447,18 +458,6 @@ public abstract class AbstractDialogFragment extends DialogFragment implements C
             dest.writeParcelable(coords, PARCELABLE_WRITE_RETURN_VALUE);
             dest.writeString(geocode);
         }
-
-        public static final Parcelable.Creator<TargetInfo> CREATOR = new Parcelable.Creator<TargetInfo>() {
-            @Override
-            public TargetInfo createFromParcel(final Parcel in) {
-                return new TargetInfo(in);
-            }
-
-            @Override
-            public TargetInfo[] newArray(final int size) {
-                return new TargetInfo[size];
-            }
-        };
 
         @Override
         public int describeContents() {

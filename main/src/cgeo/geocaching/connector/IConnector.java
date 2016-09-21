@@ -53,26 +53,6 @@ public interface IConnector {
     String getLongCacheUrl(@NonNull final Geocache cache);
 
     /**
-     * enable/disable watchlist controls in cache details
-     *
-     */
-    boolean supportsWatchList();
-
-    /**
-     * Add the cache to the watchlist
-     *
-     * @return True - success/False - failure
-     */
-    boolean addToWatchlist(@NonNull Geocache cache);
-
-    /**
-     * Remove the cache from the watchlist
-     *
-     * @return True - success/False - failure
-     */
-    boolean removeFromWatchlist(@NonNull Geocache cache);
-
-    /**
      * enable/disable favorite points controls in cache details
      *
      */
@@ -145,20 +125,6 @@ public interface IConnector {
      */
     @Nullable
     String getGeocodeFromUrl(@NonNull final String url);
-
-    /**
-     * enable/disable uploading personal note
-     *
-     * @return true, when uploading is possible
-     */
-    boolean supportsPersonalNote();
-
-    /**
-     * Uploading personal note to website
-     *
-     * @return success
-     */
-    boolean uploadPersonalNote(@NonNull Geocache cache);
 
     /**
      * enable/disable uploading modified coordinates to website

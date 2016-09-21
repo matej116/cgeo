@@ -12,12 +12,15 @@ import cgeo.geocaching.connector.capability.ISearchByGeocode;
 import cgeo.geocaching.connector.capability.ISearchByKeyword;
 import cgeo.geocaching.connector.capability.ISearchByOwner;
 import cgeo.geocaching.connector.capability.ISearchByViewPort;
+import cgeo.geocaching.connector.capability.PersonalNoteCapability;
+import cgeo.geocaching.connector.capability.WatchListCapability;
 import cgeo.geocaching.enumerations.CacheType;
 import cgeo.geocaching.enumerations.LogType;
 import cgeo.geocaching.location.Geopoint;
 import cgeo.geocaching.models.Geocache;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 
 import java.util.ArrayList;
@@ -27,7 +30,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import android.support.annotation.Nullable;
 import rx.functions.Action1;
 
 public abstract class AbstractConnector implements IConnector {
@@ -46,31 +48,6 @@ public abstract class AbstractConnector implements IConnector {
             }
         }
         return strippedList;
-    }
-
-    @Override
-    public boolean supportsWatchList() {
-        return false;
-    }
-
-    @Override
-    public boolean addToWatchlist(@NonNull final Geocache cache) {
-        return false;
-    }
-
-    @Override
-    public boolean removeFromWatchlist(@NonNull final Geocache cache) {
-        return false;
-    }
-
-    @Override
-    public boolean supportsPersonalNote() {
-        return false;
-    }
-
-    @Override
-    public boolean uploadPersonalNote(@NonNull final Geocache cache) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -266,15 +243,11 @@ public abstract class AbstractConnector implements IConnector {
         if (supportsLogImages()) {
             list.add(feature(R.string.feature_log_images));
         }
-        if (supportsPersonalNote()) {
-            list.add(feature(R.string.feature_personal_notes));
-        }
+        addCapability(list, PersonalNoteCapability.class, R.string.feature_personal_notes);
         if (supportsOwnCoordinates()) {
             list.add(feature(R.string.feature_own_coordinates));
         }
-        if (supportsWatchList()) {
-            list.add(feature(R.string.feature_watch_list));
-        }
+        addCapability(list, WatchListCapability.class, R.string.feature_watch_list);
         return list;
     }
 
