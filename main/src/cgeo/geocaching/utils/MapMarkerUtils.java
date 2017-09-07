@@ -1,5 +1,6 @@
 package cgeo.geocaching.utils;
 
+import cgeo.geocaching.CgeoApplication;
 import cgeo.geocaching.R;
 import cgeo.geocaching.enumerations.CacheListType;
 import cgeo.geocaching.enumerations.LoadFlags;
@@ -17,6 +18,13 @@ import cgeo.geocaching.utils.builders.InsetBuilder.VERTICAL;
 import cgeo.geocaching.utils.builders.InsetsBuilder;
 
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.util.Pair;
@@ -99,6 +107,8 @@ public final class MapMarkerUtils {
             .append(cache.getOfflineLogType())
             .append(showBackground(cacheListType))
             .append(showFloppyOverlay(cacheListType))
+            .append(cache.getDifficulty())
+            .append(cache.getTerrain())
             .append(assignedMarkers)
             .toHashCode();
 
@@ -287,6 +297,14 @@ public final class MapMarkerUtils {
             if (loggedMarkerId != null) {
                 insetsBuilder.withInset(new InsetBuilder(loggedMarkerId, VERTICAL.TOP, HORIZONTAL.LEFT));
             }
+        } else {
+            if (cacheListType == null && cache.getDifficulty() > 0 && cache.getTerrain() > 0) {
+                // show info about difficulty/terrain only in map
+                int size = marker.getIntrinsicWidth();
+                float ratio = (float) 7 / 18;
+                layers.add(getCacheInfoDrawable(cache, (int) (size * ratio)));
+                insets.add(new int[] {0,0, (int) (size* (1-ratio)), (int) (marker.getIntrinsicHeight() - size * ratio)});
+            }
         }
         // user modified coords
         if (showUserModifiedCoords(cache)) {
@@ -300,6 +318,59 @@ public final class MapMarkerUtils {
         addListMarkers(res, insetsBuilder, assignedMarkers);
 
         return buildLayerDrawable(insetsBuilder, 11, 10);
+    }
+
+
+    private static int colorDegree(float v) {
+        final int[] colorSteps = new int[] {
+            0xff2989d5, // 1.0
+            0xff218d82, // 1.5
+            0xff1c8f50, // 2.0
+            0xff51931c, // 2.5
+            0xff73941c, // 3.0
+            0xffc3961b, // 3.5
+            0xffc17b22, // 4.0
+            0xffbb562b, // 4.5
+            0xffb53333, // 5.0
+        };
+        return colorSteps[Math.max(Math.min((int)(v * 2) - 2, 8), 0)];
+    }
+
+    private static Drawable getCacheInfoDrawable(Geocache cache, int size) {
+
+        float fontSizeRatio = 0.5f;
+
+        Paint paint = new Paint();
+        paint.setAntiAlias(true);
+        paint.setTextSize(size * fontSizeRatio);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(Color.BLACK);
+//        paint.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        paint.setColor(colorDegree(cache.getDifficulty()));
+        canvas.drawCircle(size / 2, size / 2, size / 2, paint);
+
+        paint.setColor(colorDegree(cache.getTerrain()));
+        canvas.drawArc(new RectF(0, 0, size, size), 270, 180, true, paint);
+
+        paint.setColor(Color.WHITE);
+
+        String text = ((int)Math.floor(cache.getDifficulty())) + "/" + ((int)Math.floor(cache.getTerrain()));
+
+        Rect r = new Rect();
+        paint.getTextBounds(text, 0, text.length(), r);
+
+        canvas.drawText(
+            text,
+            size / 2,
+            size / 2 + (r.height() / 2),
+            paint
+        );
+
+        return new BitmapDrawable(CgeoApplication.getInstance().getResources(), bitmap);
     }
 
     private static LayerDrawable buildLayerDrawable(final InsetsBuilder insetsBuilder, final int layersInitialCapacity, final int insetsInitialCapacity) {
