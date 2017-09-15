@@ -322,19 +322,19 @@ public final class MapMarkerUtils {
 
 
     private static int colorDegree(float v) {
-        final int[] colorSteps = new int[] {
-            0xff2989d5, // 1.0
-            0xff218d82, // 1.5
-            0xff1c8f50, // 2.0
-            0xff51931c, // 2.5
-            0xff73941c, // 3.0
-            0xffc3961b, // 3.5
-            0xffc17b22, // 4.0
-            0xffbb562b, // 4.5
-            0xffb53333, // 5.0
-        };
-        return colorSteps[Math.max(Math.min((int)(v * 2) - 2, 8), 0)];
+        if (Math.floor(v) == v) {
+            // is whole number
+            if (v == 5.0) {
+                return 0xffb53333; // red
+            } else {
+                return 0xff51931c; // green
+            }
+        } else {
+            // half the point
+            return 0xffc17b22; // orange
+        }
     }
+
 
     private static Drawable getCacheInfoDrawable(Geocache cache, int size) {
 
